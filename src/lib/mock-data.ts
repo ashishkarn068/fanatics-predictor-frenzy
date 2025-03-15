@@ -8,7 +8,7 @@ export const teams: Team[] = [
     shortName: 'MI',
     primaryColor: '#004BA0',
     secondaryColor: '#D1AB3E',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/Logos/Medium/MI.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/milogo.png',
   },
   {
     id: '2',
@@ -16,15 +16,15 @@ export const teams: Team[] = [
     shortName: 'CSK',
     primaryColor: '#FFFF3C',
     secondaryColor: '#0081E9',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Medium/CSK.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/csklogo.png',
   },
   {
     id: '3',
-    name: 'Royal Challengers Bangalore',
+    name: 'Royal Challengers Bengaluru',
     shortName: 'RCB',
     primaryColor: '#EC1C24',
     secondaryColor: '#000000',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/Logos/Medium/RCB.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/rcblogo.png',
   },
   {
     id: '4',
@@ -32,7 +32,7 @@ export const teams: Team[] = [
     shortName: 'KKR',
     primaryColor: '#3A225D',
     secondaryColor: '#F2C000',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/Logos/Medium/KKR.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/kkrlogo.png',
   },
   {
     id: '5',
@@ -40,7 +40,7 @@ export const teams: Team[] = [
     shortName: 'DC',
     primaryColor: '#00008B',
     secondaryColor: '#EF1B23',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/Logos/Medium/DC.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/dclogo.png',
   },
   {
     id: '6',
@@ -48,7 +48,7 @@ export const teams: Team[] = [
     shortName: 'PBKS',
     primaryColor: '#ED1B24',
     secondaryColor: '#A7A9AC',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/Logos/Medium/PBKS.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/pbkslogo.png',
   },
   {
     id: '7',
@@ -56,7 +56,7 @@ export const teams: Team[] = [
     shortName: 'RR',
     primaryColor: '#254AA5',
     secondaryColor: '#EA1A85',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/Logos/Medium/RR.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/rrlogo.png',
   },
   {
     id: '8',
@@ -64,7 +64,7 @@ export const teams: Team[] = [
     shortName: 'SRH',
     primaryColor: '#F7A721',
     secondaryColor: '#E95E0B',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/Logos/Medium/SRH.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/srhlogo.png',
   },
   {
     id: '9',
@@ -72,7 +72,7 @@ export const teams: Team[] = [
     shortName: 'GT',
     primaryColor: '#1C1C1C',
     secondaryColor: '#09DBFF',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/Logos/Medium/GTmedium.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/gtlogo.png',
   },
   {
     id: '10',
@@ -80,7 +80,7 @@ export const teams: Team[] = [
     shortName: 'LSG',
     primaryColor: '#A72056',
     secondaryColor: '#FFDB00',
-    logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/Logos/Medium/LSGmedium.png',
+    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/lsglogo.png',
   }
 ];
 

@@ -42,7 +42,18 @@ const MatchCard = ({ match }: MatchCardProps) => {
             {/* Teams */}
             <div className="flex justify-between items-center mb-3">
               <div className="flex flex-col items-center text-center w-2/5">
-                <img src={team1.logo} alt={team1.name} className="h-16 w-16 mb-1" />
+                <div className="h-16 w-16 mb-1 flex items-center justify-center">
+                  <img 
+                    src={team1.logo} 
+                    alt={team1.name} 
+                    className="max-h-16 max-w-16 object-contain" 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/placeholder.svg";
+                    }}
+                  />
+                </div>
                 <span className="font-semibold text-sm" style={{ color: team1.primaryColor }}>{team1.shortName}</span>
               </div>
 
@@ -51,7 +62,18 @@ const MatchCard = ({ match }: MatchCardProps) => {
               </div>
 
               <div className="flex flex-col items-center text-center w-2/5">
-                <img src={team2.logo} alt={team2.name} className="h-16 w-16 mb-1" />
+                <div className="h-16 w-16 mb-1 flex items-center justify-center">
+                  <img 
+                    src={team2.logo} 
+                    alt={team2.name} 
+                    className="max-h-16 max-w-16 object-contain" 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/placeholder.svg";
+                    }}
+                  />
+                </div>
                 <span className="font-semibold text-sm" style={{ color: team2.primaryColor }}>{team2.shortName}</span>
               </div>
             </div>
