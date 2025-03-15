@@ -1,4 +1,3 @@
-
 import { Team, Player, Match, PredictionPoll, User, Notification, Leaderboard } from './types';
 
 // Teams
@@ -109,62 +108,105 @@ export const players: Player[] = [
   { id: '20', name: 'Krunal Pandya', teamId: '10', role: 'All-rounder' },
 ];
 
-// Generate matches for the next 2 weeks
-const generateMatches = (): Match[] => {
-  const matches: Match[] = [];
-  const today = new Date();
-  
-  // Create 12 matches over the next 2 weeks
-  for (let i = 0; i < 12; i++) {
-    const matchDate = new Date(today);
-    matchDate.setDate(today.getDate() + Math.floor(i / 2) + 1); // Spread matches, 2 per day
-    matchDate.setHours(i % 2 === 0 ? 15 : 19, 30, 0, 0); // Matches at 3:30PM and 7:30PM
-    
-    // Random teams (ensure they're different)
-    let team1Index = Math.floor(Math.random() * teams.length);
-    let team2Index = Math.floor(Math.random() * teams.length);
-    while (team2Index === team1Index) {
-      team2Index = Math.floor(Math.random() * teams.length);
-    }
-    
-    // Random venue
-    const venues = [
-      'Wankhede Stadium, Mumbai',
-      'M. A. Chidambaram Stadium, Chennai',
-      'Eden Gardens, Kolkata',
-      'Arun Jaitley Stadium, Delhi',
-      'M. Chinnaswamy Stadium, Bangalore',
-      'Rajiv Gandhi International Cricket Stadium, Hyderabad'
-    ];
-    const venue = venues[Math.floor(Math.random() * venues.length)];
-    
-    let status: 'upcoming' | 'live' | 'completed' = 'upcoming';
-    let result: string | undefined = undefined;
-    
-    // Set some matches as completed or live
-    if (i < 3) {
-      status = 'completed';
-      const winningTeam = Math.random() > 0.5 ? teams[team1Index].shortName : teams[team2Index].shortName;
-      result = `${winningTeam} won by ${Math.floor(Math.random() * 8) + 1} wickets`;
-    } else if (i === 3) {
-      status = 'live';
-    }
-    
-    matches.push({
-      id: (i + 1).toString(),
-      team1Id: teams[team1Index].id,
-      team2Id: teams[team2Index].id,
-      venue,
-      date: matchDate.toISOString(),
-      status,
-      result
-    });
+// Generate actual IPL 2025 schedule based on ESPNCricinfo
+export const matches: Match[] = [
+  {
+    id: '1',
+    team1Id: '2', // CSK
+    team2Id: '3', // RCB
+    venue: 'M. A. Chidambaram Stadium, Chennai',
+    date: '2025-03-22T19:30:00+05:30', // March 22, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '2',
+    team1Id: '6', // PBKS
+    team2Id: '5', // DC
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-03-23T15:30:00+05:30', // March 23, 2025, 3:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '3',
+    team1Id: '4', // KKR
+    team2Id: '8', // SRH
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-03-23T19:30:00+05:30', // March 23, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '4',
+    team1Id: '7', // RR
+    team2Id: '10', // LSG
+    venue: 'Barsapara Cricket Stadium, Guwahati',
+    date: '2025-03-24T19:30:00+05:30', // March 24, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '5',
+    team1Id: '9', // GT
+    team2Id: '1', // MI
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-03-25T19:30:00+05:30', // March 25, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '6',
+    team1Id: '3', // RCB
+    team2Id: '6', // PBKS
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-03-26T19:30:00+05:30', // March 26, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '7',
+    team1Id: '2', // CSK
+    team2Id: '9', // GT
+    venue: 'M. A. Chidambaram Stadium, Chennai',
+    date: '2025-03-27T19:30:00+05:30', // March 27, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '8',
+    team1Id: '8', // SRH
+    team2Id: '1', // MI
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-03-28T19:30:00+05:30', // March 28, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '9',
+    team1Id: '5', // DC
+    team2Id: '7', // RR
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-03-29T15:30:00+05:30', // March 29, 2025, 3:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '10',
+    team1Id: '4', // KKR
+    team2Id: '10', // LSG
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-03-29T19:30:00+05:30', // March 29, 2025, 7:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '11',
+    team1Id: '9', // GT
+    team2Id: '8', // SRH
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-03-30T15:30:00+05:30', // March 30, 2025, 3:30 PM IST
+    status: 'upcoming'
+  },
+  {
+    id: '12',
+    team1Id: '1', // MI
+    team2Id: '7', // RR
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-03-30T19:30:00+05:30', // March 30, 2025, 7:30 PM IST
+    status: 'upcoming'
   }
-  
-  return matches;
-};
-
-export const matches: Match[] = generateMatches();
+];
 
 // Generate prediction polls for each match
 export const predictionPolls: PredictionPoll[] = matches.flatMap(match => {

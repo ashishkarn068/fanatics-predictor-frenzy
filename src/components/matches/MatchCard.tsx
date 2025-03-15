@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Match } from "@/lib/types";
 import { getTeamById, getTimeUntilMatch, getMatchStatus } from "@/lib/utils";
+import { Trophy, Calendar, MapPin } from "lucide-react";
 
 interface MatchCardProps {
   match: Match;
@@ -22,14 +23,18 @@ const MatchCard = ({ match }: MatchCardProps) => {
           <div className="flex flex-col">
             {/* Match Status */}
             <div className="flex justify-between items-center mb-3">
-              <div className="text-sm text-gray-500">{match.venue}</div>
+              <div className="text-sm text-gray-500 flex items-center">
+                <MapPin className="h-4 w-4 mr-1" /> {match.venue}
+              </div>
               {match.status === 'live' ? (
                 <Badge className="bg-red-500 animate-pulse-subtle">LIVE</Badge>
               ) : match.status === 'completed' ? (
-                <Badge variant="outline" className="text-gray-500">Completed</Badge>
+                <Badge variant="outline" className="text-gray-500 flex items-center">
+                  <Trophy className="h-3 w-3 mr-1" /> Completed
+                </Badge>
               ) : (
-                <Badge variant="outline" className="text-gray-500">
-                  {getTimeUntilMatch(match.date)}
+                <Badge variant="outline" className="text-gray-500 flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" /> {getTimeUntilMatch(match.date)}
                 </Badge>
               )}
             </div>
@@ -37,8 +42,8 @@ const MatchCard = ({ match }: MatchCardProps) => {
             {/* Teams */}
             <div className="flex justify-between items-center mb-3">
               <div className="flex flex-col items-center text-center w-2/5">
-                <img src={team1.logo} alt={team1.name} className="h-12 w-12 mb-1" />
-                <span className="font-semibold text-sm">{team1.shortName}</span>
+                <img src={team1.logo} alt={team1.name} className="h-16 w-16 mb-1" />
+                <span className="font-semibold text-sm" style={{ color: team1.primaryColor }}>{team1.shortName}</span>
               </div>
 
               <div className="flex flex-col items-center w-1/5">
@@ -46,8 +51,8 @@ const MatchCard = ({ match }: MatchCardProps) => {
               </div>
 
               <div className="flex flex-col items-center text-center w-2/5">
-                <img src={team2.logo} alt={team2.name} className="h-12 w-12 mb-1" />
-                <span className="font-semibold text-sm">{team2.shortName}</span>
+                <img src={team2.logo} alt={team2.name} className="h-16 w-16 mb-1" />
+                <span className="font-semibold text-sm" style={{ color: team2.primaryColor }}>{team2.shortName}</span>
               </div>
             </div>
 
