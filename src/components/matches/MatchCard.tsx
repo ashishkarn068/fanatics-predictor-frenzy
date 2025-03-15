@@ -1,10 +1,9 @@
-
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Match } from "@/lib/types";
 import { getTeamById, getTimeUntilMatch, getMatchStatus } from "@/lib/utils";
-import { Trophy, Calendar, MapPin } from "lucide-react";
+import { Trophy, Calendar, MapPin, Star } from "lucide-react";
 
 interface MatchCardProps {
   match: Match;
@@ -13,12 +12,13 @@ interface MatchCardProps {
 const MatchCard = ({ match }: MatchCardProps) => {
   const team1 = getTeamById(match.team1Id);
   const team2 = getTeamById(match.team2Id);
+  const isPlayoffMatch = match.team1Id === 'tbd' || match.team2Id === 'tbd';
 
   if (!team1 || !team2) return null;
 
   return (
     <Link to={`/matches/${match.id}`}>
-      <Card className="hover:shadow-md transition-shadow duration-300">
+      <Card className={`hover:shadow-md transition-shadow duration-300 ${isPlayoffMatch ? 'border-2 border-yellow-400' : ''}`}>
         <CardContent className="p-4">
           <div className="flex flex-col">
             {/* Match Status */}
@@ -31,6 +31,10 @@ const MatchCard = ({ match }: MatchCardProps) => {
               ) : match.status === 'completed' ? (
                 <Badge variant="outline" className="text-gray-500 flex items-center">
                   <Trophy className="h-3 w-3 mr-1" /> Completed
+                </Badge>
+              ) : isPlayoffMatch ? (
+                <Badge className="bg-yellow-500 text-black flex items-center">
+                  <Star className="h-3 w-3 mr-1" /> Playoff
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-gray-500 flex items-center">
@@ -59,6 +63,9 @@ const MatchCard = ({ match }: MatchCardProps) => {
 
               <div className="flex flex-col items-center w-1/5">
                 <span className="text-lg font-bold">VS</span>
+                {isPlayoffMatch && match.name && (
+                  <span className="text-sm font-bold text-blue-700 mt-1">{match.name}</span>
+                )}
               </div>
 
               <div className="flex flex-col items-center text-center w-2/5">

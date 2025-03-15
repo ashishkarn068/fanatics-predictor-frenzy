@@ -1,4 +1,3 @@
-
 export interface Team {
   id: string;
   name: string;
@@ -18,12 +17,13 @@ export interface Player {
 
 export interface Match {
   id: string;
-  team1Id: string;
-  team2Id: string;
+  team1Id: string; // Can be a team ID or 'tbd' for playoff matches
+  team2Id: string; // Can be a team ID or 'tbd' for playoff matches
   venue: string;
   date: string; // ISO string
   status: 'upcoming' | 'live' | 'completed';
   result?: string;
+  name?: string; // Optional name for playoff matches (Qualifier 1, Eliminator, etc.)
 }
 
 export interface PredictionOption {

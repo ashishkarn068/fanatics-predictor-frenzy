@@ -8,7 +8,7 @@ export const teams: Team[] = [
     shortName: 'MI',
     primaryColor: '#004BA0',
     secondaryColor: '#D1AB3E',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/milogo.png',
+    logo: '/images/teams/mi.png',
   },
   {
     id: '2',
@@ -16,7 +16,7 @@ export const teams: Team[] = [
     shortName: 'CSK',
     primaryColor: '#FFFF3C',
     secondaryColor: '#0081E9',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/csklogo.png',
+    logo: '/images/teams/csk.png',
   },
   {
     id: '3',
@@ -24,7 +24,7 @@ export const teams: Team[] = [
     shortName: 'RCB',
     primaryColor: '#EC1C24',
     secondaryColor: '#000000',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/rcblogo.png',
+    logo: '/images/teams/rcb.png',
   },
   {
     id: '4',
@@ -32,7 +32,7 @@ export const teams: Team[] = [
     shortName: 'KKR',
     primaryColor: '#3A225D',
     secondaryColor: '#F2C000',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/kkrlogo.png',
+    logo: '/images/teams/kkr.png',
   },
   {
     id: '5',
@@ -40,7 +40,7 @@ export const teams: Team[] = [
     shortName: 'DC',
     primaryColor: '#00008B',
     secondaryColor: '#EF1B23',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/dclogo.png',
+    logo: '/images/teams/dc.png',
   },
   {
     id: '6',
@@ -48,7 +48,7 @@ export const teams: Team[] = [
     shortName: 'PBKS',
     primaryColor: '#ED1B24',
     secondaryColor: '#A7A9AC',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/pbkslogo.png',
+    logo: '/images/teams/pbks.png',
   },
   {
     id: '7',
@@ -56,7 +56,7 @@ export const teams: Team[] = [
     shortName: 'RR',
     primaryColor: '#254AA5',
     secondaryColor: '#EA1A85',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/rrlogo.png',
+    logo: '/images/teams/rr.png',
   },
   {
     id: '8',
@@ -64,7 +64,7 @@ export const teams: Team[] = [
     shortName: 'SRH',
     primaryColor: '#F7A721',
     secondaryColor: '#E95E0B',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/srhlogo.png',
+    logo: '/images/teams/srh.png',
   },
   {
     id: '9',
@@ -72,7 +72,7 @@ export const teams: Team[] = [
     shortName: 'GT',
     primaryColor: '#1C1C1C',
     secondaryColor: '#09DBFF',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/gtlogo.png',
+    logo: '/images/teams/gt.png',
   },
   {
     id: '10',
@@ -80,7 +80,7 @@ export const teams: Team[] = [
     shortName: 'LSG',
     primaryColor: '#A72056',
     secondaryColor: '#FFDB00',
-    logo: 'https://www.iplt20.com/assets/images/franchises/squadlogos/lsglogo.png',
+    logo: '/images/teams/lsg.png',
   }
 ];
 
@@ -108,108 +108,611 @@ export const players: Player[] = [
   { id: '20', name: 'Krunal Pandya', teamId: '10', role: 'All-rounder' },
 ];
 
-// Generate actual IPL 2025 schedule based on ESPNCricinfo
+// IPL 2025 match schedule based on the official fixtures
 export const matches: Match[] = [
   {
     id: '1',
-    team1Id: '2', // CSK
+    team1Id: '4', // KKR
     team2Id: '3', // RCB
-    venue: 'M. A. Chidambaram Stadium, Chennai',
-    date: '2025-03-22T19:30:00+05:30', // March 22, 2025, 7:30 PM IST
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-03-22T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '2',
-    team1Id: '6', // PBKS
-    team2Id: '5', // DC
-    venue: 'Punjab Cricket Association Stadium, Mohali',
-    date: '2025-03-23T15:30:00+05:30', // March 23, 2025, 3:30 PM IST
+    team1Id: '8', // SRH
+    team2Id: '7', // RR
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-03-23T15:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '3',
-    team1Id: '4', // KKR
-    team2Id: '8', // SRH
-    venue: 'Eden Gardens, Kolkata',
-    date: '2025-03-23T19:30:00+05:30', // March 23, 2025, 7:30 PM IST
+    team1Id: '2', // CSK
+    team2Id: '1', // MI
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-03-23T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '4',
-    team1Id: '7', // RR
+    team1Id: '5', // DC
     team2Id: '10', // LSG
-    venue: 'Barsapara Cricket Stadium, Guwahati',
-    date: '2025-03-24T19:30:00+05:30', // March 24, 2025, 7:30 PM IST
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-03-24T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '5',
     team1Id: '9', // GT
-    team2Id: '1', // MI
+    team2Id: '6', // PBKS
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    date: '2025-03-25T19:30:00+05:30', // March 25, 2025, 7:30 PM IST
+    date: '2025-03-25T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '6',
-    team1Id: '3', // RCB
-    team2Id: '6', // PBKS
-    venue: 'M. Chinnaswamy Stadium, Bengaluru',
-    date: '2025-03-26T19:30:00+05:30', // March 26, 2025, 7:30 PM IST
+    team1Id: '7', // RR
+    team2Id: '4', // KKR
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-03-26T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '7',
-    team1Id: '2', // CSK
-    team2Id: '9', // GT
-    venue: 'M. A. Chidambaram Stadium, Chennai',
-    date: '2025-03-27T19:30:00+05:30', // March 27, 2025, 7:30 PM IST
+    team1Id: '8', // SRH
+    team2Id: '10', // LSG
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-03-27T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '8',
-    team1Id: '8', // SRH
-    team2Id: '1', // MI
-    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
-    date: '2025-03-28T19:30:00+05:30', // March 28, 2025, 7:30 PM IST
+    team1Id: '2', // CSK
+    team2Id: '3', // RCB
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-03-28T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '9',
-    team1Id: '5', // DC
-    team2Id: '7', // RR
-    venue: 'Arun Jaitley Stadium, Delhi',
-    date: '2025-03-29T15:30:00+05:30', // March 29, 2025, 3:30 PM IST
+    team1Id: '9', // GT
+    team2Id: '1', // MI
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-03-29T15:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '10',
-    team1Id: '4', // KKR
-    team2Id: '10', // LSG
-    venue: 'Eden Gardens, Kolkata',
-    date: '2025-03-29T19:30:00+05:30', // March 29, 2025, 7:30 PM IST
+    team1Id: '5', // DC
+    team2Id: '8', // SRH
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-03-29T19:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '11',
-    team1Id: '9', // GT
-    team2Id: '8', // SRH
-    venue: 'Narendra Modi Stadium, Ahmedabad',
-    date: '2025-03-30T15:30:00+05:30', // March 30, 2025, 3:30 PM IST
+    team1Id: '7', // RR
+    team2Id: '2', // CSK
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-03-30T15:30:00+05:30',
     status: 'upcoming'
   },
   {
     id: '12',
     team1Id: '1', // MI
-    team2Id: '7', // RR
+    team2Id: '4', // KKR
     venue: 'Wankhede Stadium, Mumbai',
-    date: '2025-03-30T19:30:00+05:30', // March 30, 2025, 7:30 PM IST
+    date: '2025-03-30T19:30:00+05:30',
     status: 'upcoming'
+  },
+  {
+    id: '13',
+    team1Id: '10', // LSG
+    team2Id: '6', // PBKS
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-03-31T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '14',
+    team1Id: '3', // RCB
+    team2Id: '9', // GT
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-04-01T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '15',
+    team1Id: '4', // KKR
+    team2Id: '8', // SRH
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-04-02T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '16',
+    team1Id: '10', // LSG
+    team2Id: '1', // MI
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-04-03T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '17',
+    team1Id: '2', // CSK
+    team2Id: '5', // DC
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-04-04T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '18',
+    team1Id: '6', // PBKS
+    team2Id: '7', // RR
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-04-05T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '19',
+    team1Id: '4', // KKR
+    team2Id: '10', // LSG
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-04-05T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '20',
+    team1Id: '8', // SRH
+    team2Id: '9', // GT
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-04-06T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '21',
+    team1Id: '1', // MI
+    team2Id: '3', // RCB
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-04-06T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '22',
+    team1Id: '6', // PBKS
+    team2Id: '2', // CSK
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-04-07T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '23',
+    team1Id: '9', // GT
+    team2Id: '7', // RR
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-04-08T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '24',
+    team1Id: '3', // RCB
+    team2Id: '5', // DC
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-04-09T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '25',
+    team1Id: '2', // CSK
+    team2Id: '4', // KKR
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-04-10T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '26',
+    team1Id: '10', // LSG
+    team2Id: '9', // GT
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-04-11T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '27',
+    team1Id: '8', // SRH
+    team2Id: '6', // PBKS
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-04-12T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '28',
+    team1Id: '7', // RR
+    team2Id: '3', // RCB
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-04-12T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '29',
+    team1Id: '5', // DC
+    team2Id: '1', // MI
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-04-13T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '30',
+    team1Id: '10', // LSG
+    team2Id: '2', // CSK
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-04-13T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '31',
+    team1Id: '6', // PBKS
+    team2Id: '4', // KKR
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-04-14T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '32',
+    team1Id: '5', // DC
+    team2Id: '7', // RR
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-04-15T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '33',
+    team1Id: '1', // MI
+    team2Id: '8', // SRH
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-04-16T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '34',
+    team1Id: '3', // RCB
+    team2Id: '6', // PBKS
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-04-17T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '35',
+    team1Id: '9', // GT
+    team2Id: '5', // DC
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-04-18T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '36',
+    team1Id: '7', // RR
+    team2Id: '10', // LSG
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-04-19T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '37',
+    team1Id: '6', // PBKS
+    team2Id: '3', // RCB
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-04-19T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '38',
+    team1Id: '1', // MI
+    team2Id: '2', // CSK
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-04-20T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '39',
+    team1Id: '4', // KKR
+    team2Id: '9', // GT
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-04-20T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '40',
+    team1Id: '10', // LSG
+    team2Id: '5', // DC
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-04-21T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '41',
+    team1Id: '8', // SRH
+    team2Id: '1', // MI
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-04-22T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '42',
+    team1Id: '3', // RCB
+    team2Id: '7', // RR
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-04-23T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '43',
+    team1Id: '2', // CSK
+    team2Id: '8', // SRH
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-04-24T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '44',
+    team1Id: '4', // KKR
+    team2Id: '6', // PBKS
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-04-25T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '45',
+    team1Id: '1', // MI
+    team2Id: '10', // LSG
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-04-26T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '46',
+    team1Id: '5', // DC
+    team2Id: '3', // RCB
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-04-26T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '47',
+    team1Id: '7', // RR
+    team2Id: '9', // GT
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-04-27T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '48',
+    team1Id: '5', // DC
+    team2Id: '4', // KKR
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-04-27T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '49',
+    team1Id: '2', // CSK
+    team2Id: '6', // PBKS
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-04-28T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '50',
+    team1Id: '7', // RR
+    team2Id: '1', // MI
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-04-29T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '51',
+    team1Id: '9', // GT
+    team2Id: '8', // SRH
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-04-30T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '52',
+    team1Id: '3', // RCB
+    team2Id: '2', // CSK
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-05-01T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '53',
+    team1Id: '4', // KKR
+    team2Id: '7', // RR
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-05-02T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '54',
+    team1Id: '6', // PBKS
+    team2Id: '10', // LSG
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-05-03T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '55',
+    team1Id: '8', // SRH
+    team2Id: '5', // DC
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-05-03T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '56',
+    team1Id: '1', // MI
+    team2Id: '9', // GT
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-05-04T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '57',
+    team1Id: '3', // RCB
+    team2Id: '10', // LSG
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-05-04T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '58',
+    team1Id: '2', // CSK
+    team2Id: '9', // GT
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-05-05T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '59',
+    team1Id: '6', // PBKS
+    team2Id: '5', // DC
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-05-06T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '60',
+    team1Id: '4', // KKR
+    team2Id: '1', // MI
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-05-07T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '61',
+    team1Id: '8', // SRH
+    team2Id: '3', // RCB
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-05-08T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '62',
+    team1Id: '7', // RR
+    team2Id: '6', // PBKS
+    venue: 'Sawai Mansingh Stadium, Jaipur',
+    date: '2025-05-09T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '63',
+    team1Id: '10', // LSG
+    team2Id: '8', // SRH
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-05-10T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '64',
+    team1Id: '1', // MI
+    team2Id: '5', // DC
+    venue: 'Wankhede Stadium, Mumbai',
+    date: '2025-05-10T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '65',
+    team1Id: '9', // GT
+    team2Id: '4', // KKR
+    venue: 'Narendra Modi Stadium, Ahmedabad',
+    date: '2025-05-11T15:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '66',
+    team1Id: '2', // CSK
+    team2Id: '7', // RR
+    venue: 'M.A. Chidambaram Stadium, Chennai',
+    date: '2025-05-11T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '67',
+    team1Id: '3', // RCB
+    team2Id: '1', // MI
+    venue: 'M. Chinnaswamy Stadium, Bengaluru',
+    date: '2025-05-12T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '68',
+    team1Id: '10', // LSG
+    team2Id: '4', // KKR
+    venue: 'Ekana Cricket Stadium, Lucknow',
+    date: '2025-05-13T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '69',
+    team1Id: '6', // PBKS
+    team2Id: '9', // GT
+    venue: 'Punjab Cricket Association Stadium, Mohali',
+    date: '2025-05-14T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  {
+    id: '70',
+    team1Id: '5', // DC
+    team2Id: '2', // CSK
+    venue: 'Arun Jaitley Stadium, Delhi',
+    date: '2025-05-15T19:30:00+05:30',
+    status: 'upcoming'
+  },
+  // Playoffs
+  {
+    id: '71',
+    team1Id: 'tbd', // Placeholder for Qualifier 1 (1st vs 2nd)
+    team2Id: 'tbd',
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-05-20T19:30:00+05:30',
+    status: 'upcoming',
+    name: 'Qualifier 1'
+  },
+  {
+    id: '72',
+    team1Id: 'tbd', // Placeholder for Eliminator (3rd vs 4th)
+    team2Id: 'tbd',
+    venue: 'Rajiv Gandhi International Stadium, Hyderabad',
+    date: '2025-05-21T19:30:00+05:30',
+    status: 'upcoming',
+    name: 'Eliminator'
+  },
+  {
+    id: '73',
+    team1Id: 'tbd', // Placeholder for Qualifier 2 (Loser of Q1 vs Winner of Eliminator)
+    team2Id: 'tbd',
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-05-23T19:30:00+05:30',
+    status: 'upcoming',
+    name: 'Qualifier 2'
+  },
+  {
+    id: '74',
+    team1Id: 'tbd', // Placeholder for Final
+    team2Id: 'tbd',
+    venue: 'Eden Gardens, Kolkata',
+    date: '2025-05-25T19:30:00+05:30',
+    status: 'upcoming',
+    name: 'Final'
   }
 ];
 
 // Generate prediction polls for each match
-export const predictionPolls: PredictionPoll[] = matches.flatMap(match => {
+export const predictionPolls: PredictionPoll[] = matches
+  .filter(match => match.team1Id !== 'tbd' && match.team2Id !== 'tbd') // Skip TBD playoff matches
+  .flatMap(match => {
   const team1 = teams.find(t => t.id === match.team1Id)!;
   const team2 = teams.find(t => t.id === match.team2Id)!;
   

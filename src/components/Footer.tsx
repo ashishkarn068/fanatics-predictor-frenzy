@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -7,7 +6,14 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold gradient-text mb-4">IPL Predictor</h3>
+            <div className="flex items-center mb-4">
+              <img 
+                src="/images/iplLogo.png" 
+                alt="IPL Predictor" 
+                className="h-10 mr-2" 
+              />
+              <h3 className="text-xl font-bold gradient-text">IPL Predictor</h3>
+            </div>
             <p className="text-gray-600 text-sm">
               Test your cricket prediction skills and compete with friends during the
               Indian Premier League season.
@@ -29,6 +35,16 @@ const Footer = () => {
               <li>
                 <Link to="/leaderboard" className="text-gray-600 hover:text-ipl-blue text-sm">
                   Leaderboard
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className="text-gray-600 hover:text-ipl-blue text-sm">
+                  Profile
+                </Link>
+              </li>
+              <li>
+                <Link to="/notifications" className="text-gray-600 hover:text-ipl-blue text-sm">
+                  Notifications
                 </Link>
               </li>
               <li>

@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Team, Match, PredictionPoll, User } from "./types";
@@ -30,6 +29,17 @@ export function formatDateTime(date: string): string {
 }
 
 export function getTeamById(teamId: string): Team | undefined {
+  if (teamId === 'tbd') {
+    // Return a placeholder team for TBD
+    return {
+      id: 'tbd',
+      name: 'To Be Determined',
+      shortName: 'TBD',
+      primaryColor: '#808080', // Gray color
+      secondaryColor: '#D3D3D3',
+      logo: '/placeholder.svg'
+    };
+  }
   return teams.find(team => team.id === teamId);
 }
 
