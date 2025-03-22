@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Team, Match, PredictionPoll, User } from "./types";
-import { teams } from "./mock-data";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,8 +23,37 @@ export function formatTime(date: string): string {
   });
 }
 
-export function formatDateTime(date: string): string {
-  return `${formatDate(date)} at ${formatTime(date)}`;
+export function formatDateTime(date: string | Date): string {
+  if (typeof date === 'string') {
+    return `${formatDate(date)} at ${formatTime(date)}`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+}
+
+/**
+ * Returns the initials from a display name for use in avatar fallbacks
+ */
+export function getAvatarFallback(displayName: string): string {
+  if (!displayName) return "?";
+  
+  const names = displayName.trim().split(/\s+/);
+  
+  if (names.length === 1) {
+    // Get the first two characters of the name if only one name is provided
+    return displayName.substring(0, 2).toUpperCase();
+  }
+  
+  // Get initials from first and last name
+  return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
 }
 
 export function getTeamById(teamId: string): Team | undefined {
@@ -40,7 +68,43 @@ export function getTeamById(teamId: string): Team | undefined {
       logo: '/placeholder.svg'
     };
   }
-  return teams.find(team => team.id === teamId);
+  
+  // Create a fallback team with basic info
+  return {
+    id: teamId,
+    name: teamId === '1' ? 'Mumbai Indians' : 
+          teamId === '2' ? 'Chennai Super Kings' :
+          teamId === '3' ? 'Royal Challengers Bangalore' :
+          teamId === '4' ? 'Kolkata Knight Riders' :
+          teamId === '5' ? 'Delhi Capitals' :
+          teamId === '6' ? 'Punjab Kings' :
+          teamId === '7' ? 'Rajasthan Royals' :
+          teamId === '8' ? 'Sunrisers Hyderabad' :
+          teamId === '9' ? 'Gujarat Titans' :
+          teamId === '10' ? 'Lucknow Super Giants' : 'Unknown Team',
+    shortName: teamId === '1' ? 'MI' : 
+               teamId === '2' ? 'CSK' :
+               teamId === '3' ? 'RCB' :
+               teamId === '4' ? 'KKR' :
+               teamId === '5' ? 'DC' :
+               teamId === '6' ? 'PBKS' :
+               teamId === '7' ? 'RR' :
+               teamId === '8' ? 'SRH' :
+               teamId === '9' ? 'GT' :
+               teamId === '10' ? 'LSG' : 'TBD',
+    primaryColor: '#1976D2',
+    secondaryColor: '#FFFFFF',
+    logo: `/images/teams/${teamId === '1' ? 'mi' : 
+                           teamId === '2' ? 'csk' :
+                           teamId === '3' ? 'rcb' :
+                           teamId === '4' ? 'kkr' :
+                           teamId === '5' ? 'dc' :
+                           teamId === '6' ? 'pbks' :
+                           teamId === '7' ? 'rr' :
+                           teamId === '8' ? 'srh' :
+                           teamId === '9' ? 'gt' :
+                           teamId === '10' ? 'lsg' : 'default'}.png`
+  };
 }
 
 export function getMatchStatus(match: Match): string {

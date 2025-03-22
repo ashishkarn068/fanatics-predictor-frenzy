@@ -1,38 +1,64 @@
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Skeleton } from '@/components/ui/skeleton';
+import { isUserAdmin } from '@/utils/admin-auth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  redirectTo?: string;
+  requireAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children, redirectTo = "/register" }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
-  if (loading) {
-    // Show a nice loading skeleton instead of a plain loading text
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        if (loading) return;
+
+        if (!currentUser) {
+          navigate('/login');
+          return;
+        }
+
+        if (requireAdmin) {
+          const adminStatus = await isUserAdmin(currentUser.uid);
+          setIsAdmin(adminStatus);
+          
+          if (!adminStatus) {
+            navigate('/');
+            return;
+          }
+        }
+        
+        setIsChecking(false);
+      } catch (error) {
+        console.error('Error checking access:', error);
+        navigate('/');
+      }
+    };
+
+    checkAccess();
+  }, [currentUser, loading, navigate, requireAdmin]);
+
+  if (loading || (requireAdmin && isChecking)) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <Skeleton className="h-12 w-48 mb-6" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Skeleton className="h-8 w-full mb-4" />
-            <Skeleton className="h-32 w-full mb-2" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-          <div>
-            <Skeleton className="h-8 w-full mb-4" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3">Verifying access...</span>
       </div>
     );
   }
 
   if (!currentUser) {
-    return <Navigate to={redirectTo} />;
+    return null; // useEffect will handle navigation
+  }
+
+  if (requireAdmin && !isAdmin) {
+    return null; // useEffect will handle navigation
   }
 
   return <>{children}</>;

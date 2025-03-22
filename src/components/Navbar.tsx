@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { 
@@ -24,9 +24,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { notifications } from '@/lib/mock-data';
+import { isUserAdmin } from '@/utils/admin-auth';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,6 +36,25 @@ const Navbar = () => {
   
   // Check if user is authenticated
   const isAuthenticated = !!currentUser;
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (currentUser) {
+        try {
+          const adminStatus = await isUserAdmin(currentUser.uid);
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [currentUser]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -96,6 +117,19 @@ const Navbar = () => {
               >
                 Leaderboard
               </Link>
+              
+              {isAdmin && (
+                <Link 
+                  to="/admin" 
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    location.pathname === '/admin' 
+                      ? 'text-ipl-blue font-semibold' 
+                      : 'text-gray-700 hover:text-ipl-blue'
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
               
               {isAuthenticated ? (
                 <>
@@ -212,6 +246,23 @@ const Navbar = () => {
               </div>
             </Link>
             
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  location.pathname === '/admin' 
+                    ? 'text-ipl-blue font-semibold' 
+                    : 'text-gray-700 hover:text-ipl-blue'
+                }`}
+                onClick={toggleMenu}
+              >
+                <div className="flex items-center">
+                  <BarChart className="mr-2 h-5 w-5" />
+                  Admin
+                </div>
+              </Link>
+            )}
+            
             {isAuthenticated ? (
               <>
                 <Link 
@@ -244,10 +295,11 @@ const Navbar = () => {
             ) : (
               <Link 
                 to="/register" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ipl-blue hover:bg-ipl-blue/90"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-ipl-blue"
                 onClick={toggleMenu}
               >
-                <div className="flex items-center justify-center">
+                <div className="flex items-center">
+                  <User className="mr-2 h-5 w-5" />
                   Sign In
                 </div>
               </Link>

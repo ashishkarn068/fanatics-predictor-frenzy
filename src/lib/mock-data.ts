@@ -716,155 +716,153 @@ export const predictionPolls: PredictionPoll[] = matches
   const team1 = teams.find(t => t.id === match.team1Id)!;
   const team2 = teams.find(t => t.id === match.team2Id)!;
   
-  const matchPlayers = players.filter(p => 
-    p.teamId === match.team1Id || p.teamId === match.team2Id
-  );
+  // Get players from each team for the polls
+  const team1Players = players.filter(p => p.teamId === match.team1Id);
+  const team2Players = players.filter(p => p.teamId === match.team2Id);
+  const team1Batsmen = team1Players.filter(p => p.role === 'Batsman' || p.role === 'All-rounder');
+  const team2Batsmen = team2Players.filter(p => p.role === 'Batsman' || p.role === 'All-rounder');
+  const team1Bowlers = team1Players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder');
+  const team2Bowlers = team2Players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder');
   
-  const batsmen = matchPlayers.filter(p => 
-    p.role === 'Batsman' || p.role === 'All-rounder' || p.role === 'Wicket-keeper'
-  );
-  
-  const bowlers = matchPlayers.filter(p => 
-    p.role === 'Bowler' || p.role === 'All-rounder'
-  );
-  
+  // Calculate deadline 15 minutes before match
   const matchDate = new Date(match.date);
-  const deadline = new Date(matchDate);
-  deadline.setMinutes(matchDate.getMinutes() - 30); // Deadline 30 mins before match
+  const deadline = new Date(matchDate.getTime() - 15 * 60 * 1000).toISOString();
   
   return [
     // Match Winner Poll
     {
       id: `${match.id}-winner`,
       matchId: match.id,
-      type: 'match-winner',
       title: 'Match Winner',
-      description: 'Which team will win this match?',
-      options: [
-        { id: `${match.id}-winner-1`, value: team1.id, label: team1.name },
-        { id: `${match.id}-winner-2`, value: team2.id, label: team2.name }
-      ],
+      description: 'Predict which team will win the match',
+      type: 'single',
       points: 10,
-      deadline: deadline.toISOString()
+      deadline,
+      options: [
+        { id: `${match.id}-winner-1`, label: team1.name, value: team1.id },
+        { id: `${match.id}-winner-2`, label: team2.name, value: team2.id }
+      ]
     },
     
     // Top Batsman Poll
     {
-      id: `${match.id}-batsman`,
+      id: `${match.id}-top-batsman`,
       matchId: match.id,
-      type: 'top-batsman',
       title: 'Top Batsman',
-      description: 'Who will score the most runs in this match?',
-      options: batsmen.map((player, index) => ({
-        id: `${match.id}-batsman-${index}`,
-        value: player.id,
-        label: player.name
-      })),
+      description: 'Predict the player who will score the most runs',
+      type: 'single',
       points: 15,
-      deadline: deadline.toISOString()
+      deadline,
+      options: [
+        ...team1Batsmen.map(p => ({ 
+          id: `${match.id}-batsman-${p.id}`, 
+          label: `${p.name} (${team1.name})`, 
+          value: p.id 
+        })),
+        ...team2Batsmen.map(p => ({ 
+          id: `${match.id}-batsman-${p.id}`, 
+          label: `${p.name} (${team2.name})`, 
+          value: p.id 
+        }))
+      ]
     },
     
     // Top Bowler Poll
     {
-      id: `${match.id}-bowler`,
+      id: `${match.id}-top-bowler`,
       matchId: match.id,
-      type: 'top-bowler',
       title: 'Top Bowler',
-      description: 'Who will take the most wickets in this match?',
-      options: bowlers.map((player, index) => ({
-        id: `${match.id}-bowler-${index}`,
-        value: player.id,
-        label: player.name
-      })),
+      description: 'Predict the player who will take the most wickets',
+      type: 'single',
       points: 15,
-      deadline: deadline.toISOString()
-    },
-    
-    // Powerplay Score Poll
-    {
-      id: `${match.id}-powerplay`,
-      matchId: match.id,
-      type: 'powerplay-score',
-      title: 'Powerplay Score',
-      description: `How many runs will ${team1.name} score in the powerplay (first 6 overs)?`,
+      deadline,
       options: [
-        { id: `${match.id}-powerplay-1`, value: '0-40', label: '0-40 runs' },
-        { id: `${match.id}-powerplay-2`, value: '41-50', label: '41-50 runs' },
-        { id: `${match.id}-powerplay-3`, value: '51-60', label: '51-60 runs' },
-        { id: `${match.id}-powerplay-4`, value: '61-70', label: '61-70 runs' },
-        { id: `${match.id}-powerplay-5`, value: '71+', label: '71+ runs' }
-      ],
-      points: 15,
-      deadline: deadline.toISOString()
+        ...team1Bowlers.map(p => ({ 
+          id: `${match.id}-bowler-${p.id}`, 
+          label: `${p.name} (${team1.name})`, 
+          value: p.id 
+        })),
+        ...team2Bowlers.map(p => ({ 
+          id: `${match.id}-bowler-${p.id}`, 
+          label: `${p.name} (${team2.name})`, 
+          value: p.id 
+        }))
+      ]
     },
     
-    // Total Runs Poll
+    // Powerplay Score Team 1
+    {
+      id: `${match.id}-powerplay-${team1.id}`,
+      matchId: match.id,
+      title: `${team1.name} Powerplay Score`,
+      description: 'Predict the score after 6 overs',
+      type: 'number',
+      points: 15,
+      deadline,
+      options: []
+    },
+    
+    // Powerplay Score Team 2
+    {
+      id: `${match.id}-powerplay-${team2.id}`,
+      matchId: match.id,
+      title: `${team2.name} Powerplay Score`,
+      description: 'Predict the score after 6 overs',
+      type: 'number',
+      points: 15,
+      deadline,
+      options: []
+    },
+    
+    // Total Runs in Match
     {
       id: `${match.id}-total-runs`,
       matchId: match.id,
-      type: 'total-runs',
-      title: 'Total Match Runs',
-      description: 'What will be the total runs scored in the match by both teams combined?',
-      options: [
-        { id: `${match.id}-total-1`, value: '0-250', label: '0-250 runs' },
-        { id: `${match.id}-total-2`, value: '251-300', label: '251-300 runs' },
-        { id: `${match.id}-total-3`, value: '301-350', label: '301-350 runs' },
-        { id: `${match.id}-total-4`, value: '351-400', label: '351-400 runs' },
-        { id: `${match.id}-total-5`, value: '401+', label: '401+ runs' }
-      ],
+      title: 'Total Runs in Match',
+      description: 'Predict the combined runs scored by both teams',
+      type: 'number',
       points: 20,
-      deadline: deadline.toISOString()
+      deadline,
+      options: []
     },
     
-    // Winning Margin Poll
+    // Winning Margin
     {
-      id: `${match.id}-margin`,
+      id: `${match.id}-winning-margin`,
       matchId: match.id,
-      type: 'winning-margin',
       title: 'Winning Margin',
-      description: 'What will be the margin of victory in this match?',
-      options: [
-        { id: `${match.id}-margin-1`, value: 'runs-0-20', label: 'Victory by 0-20 runs' },
-        { id: `${match.id}-margin-2`, value: 'runs-21-40', label: 'Victory by 21-40 runs' },
-        { id: `${match.id}-margin-3`, value: 'runs-41+', label: 'Victory by 41+ runs' },
-        { id: `${match.id}-margin-4`, value: 'wickets-0-3', label: 'Victory by 0-3 wickets' },
-        { id: `${match.id}-margin-5`, value: 'wickets-4-7', label: 'Victory by 4-7 wickets' },
-        { id: `${match.id}-margin-6`, value: 'wickets-8-10', label: 'Victory by 8-10 wickets' }
-      ],
+      description: 'Predict the margin of victory (runs or wickets)',
+      type: 'text',
       points: 10,
-      deadline: deadline.toISOString()
+      deadline,
+      options: []
     },
     
-    // Number of Sixes Poll
+    // Number of Sixes
     {
       id: `${match.id}-sixes`,
       matchId: match.id,
-      type: 'number-of-sixes',
       title: 'Number of Sixes',
-      description: 'How many sixes will be hit in total during the match?',
-      options: [
-        { id: `${match.id}-sixes-1`, value: '0-8', label: '0-8 sixes' },
-        { id: `${match.id}-sixes-2`, value: '9-16', label: '9-16 sixes' },
-        { id: `${match.id}-sixes-3`, value: '17-24', label: '17-24 sixes' },
-        { id: `${match.id}-sixes-4`, value: '25+', label: '25+ sixes' }
-      ],
+      description: 'Predict the total number of sixes in the match',
+      type: 'number',
       points: 15,
-      deadline: deadline.toISOString()
+      deadline,
+      options: []
     },
     
-    // Century Scored Poll
+    // Century Scored
     {
       id: `${match.id}-century`,
       matchId: match.id,
-      type: 'century-scored',
       title: 'Century Scored',
-      description: 'Will any player score a century (100+ runs) in this match?',
-      options: [
-        { id: `${match.id}-century-1`, value: 'yes', label: 'Yes' },
-        { id: `${match.id}-century-2`, value: 'no', label: 'No' }
-      ],
+      description: 'Will any player score a century in this match?',
+      type: 'single',
       points: 10,
-      deadline: deadline.toISOString()
+      deadline,
+      options: [
+        { id: `${match.id}-century-yes`, label: 'Yes', value: 'yes' },
+        { id: `${match.id}-century-no`, label: 'No', value: 'no' }
+      ]
     }
   ];
 });

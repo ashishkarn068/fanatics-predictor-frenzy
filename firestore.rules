@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    
+    function isMatchStarted(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      // Check if match date is in the past or status is not 'upcoming'
+      return match.data.date < request.time || match.data.status != 'upcoming';
+    }
+    
+    // Allow anyone to read team data
+    match /teams/{teamId} {
+      allow read: if true;
+      // Only allow writes from authenticated users with admin role
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Matches collection
+    match /matches/{matchId} {
+      allow read: if true;
+      // Only allow writes from authenticated users with admin role
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Poll questions
+    match /pollQuestions/{questionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Prediction Games - prevent modifications after first submission
+    match /predictionGames/{gameId} {
+      allow read: if true;
+      // Allow creation only if the match hasn't started
+      allow create: if isAuthenticated() && 
+                     !isMatchStarted(request.resource.data.matchId);
+      // Only allow admins to update
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+    
+    // Prediction Answers - prevent modifications after first submission
+    match /predictionAnswers/{answerId} {
+      allow read: if isAuthenticated() && (
+                    request.auth.uid == resource.data.userId || isAdmin()
+                  );
+      // Allow creation only if the match hasn't started and the user owns the answer
+      allow create: if isAuthenticated() && 
+                     request.auth.uid == request.resource.data.userId &&
+                     !isMatchStarted(request.resource.data.matchId);
+      // Only allow admins to update
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+    
+    // Squads collection
+    match /squads/{squadId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Leaderboard
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // User profiles
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Standard questions collection
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // System settings
+    match /systemSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // For development purposes only - remove this in production
+    // match /{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}

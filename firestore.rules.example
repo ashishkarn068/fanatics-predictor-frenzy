@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Match collection rules
+    
+    // Users collection - users can read their own data, admins can read/write all
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Teams collection - public read, admin write
+    match /teams/{teamId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Players collection - public read, admin write
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Matches collection - public read, admin write
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Predictions collection - users can read/write their own predictions
+    match /predictions/{predictionId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // Prediction questions - public read, admin write
+    match /predictionQuestions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Leaderboards - public read, admin write
+    match /leaderboards/{leaderboardId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      // Leaderboard entries - public read, admin write
+      match /leaderboardEntries/{entryId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+  }
+}

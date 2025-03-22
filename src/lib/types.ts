@@ -35,7 +35,7 @@ export interface PredictionOption {
 export interface PredictionPoll {
   id: string;
   matchId: string;
-  type: 'match-winner' | 'top-batsman' | 'top-bowler' | 'powerplay-score' | 'total-runs' | 'winning-margin' | 'number-of-sixes' | 'century-scored';
+  type: 'single' | 'number' | 'text';
   title: string;
   description: string;
   options: PredictionOption[];
@@ -76,8 +76,11 @@ export interface LeaderboardEntry {
   userName: string;
   userAvatar?: string;
   points: number;
-  correctPredictions: number;
-  totalPredictions: number;
+  correctPredictions?: number;
+  totalPredictions?: number;
+  accuracy?: number;
+  streak?: number;
+  trend?: 'up' | 'down' | 'neutral';
 }
 
 export interface Notification {
@@ -89,4 +92,51 @@ export interface Notification {
   read: boolean;
   createdAt: string; // ISO string
   linkTo?: string;
+}
+
+export interface Prediction {
+  userId: string;
+  matchId: string;
+  winnerTeamId: string;
+  topBatsmanId?: string;
+  topBowlerId?: string;
+  createdAt: string | any; // Allow Firestore Timestamp
+  updatedAt: string | any; // Allow Firestore Timestamp
+}
+
+// New interfaces for the updated prediction system
+export interface Question {
+  id: string;
+  text: string;
+  type: 'winner' | 'topBatsman' | 'topBowler' | 'highestTotal' | 'moreSixes' | 'custom';
+  points: number;
+  options?: { id: string; value: string; label: string }[];
+  createdAt?: string | any; // Allow Firestore Timestamp
+  updatedAt?: string | any; // Allow Firestore Timestamp
+}
+
+export interface PredictionGame {
+  id: string;
+  matchId: string;
+  title: string;
+  description?: string;
+  startTime: string | any; // Allow Firestore Timestamp
+  endTime: string | any; // Allow Firestore Timestamp
+  isActive: boolean;
+  questionIds: string[]; // References to questions
+  createdAt?: string | any; // Allow Firestore Timestamp
+  updatedAt?: string | any; // Allow Firestore Timestamp
+}
+
+export interface PredictionAnswer {
+  id: string;
+  userId: string;
+  matchId: string;
+  predictionGameId: string;
+  questionId: string;
+  answer: string; // Could be teamId, playerId, etc. depending on question type
+  isCorrect?: boolean;
+  pointsEarned?: number;
+  createdAt?: string | any; // Allow Firestore Timestamp
+  updatedAt?: string | any; // Allow Firestore Timestamp
 }
