@@ -59,6 +59,7 @@ export interface Match {
   isPlayoff?: boolean;
   playoffRound?: string | null;
   playoffOrder?: number | null;
+  isPredictionEnabledByAdmin?: boolean;
   result?: {
     winner: string;
     team1Score?: string;
@@ -124,6 +125,7 @@ export interface MatchResult {
   highestTotal?: number;
   numberOfSixes?: number;
   moreSixes?: string; // Team that hit more sixes or 'tie'
+  totalSixes?: number; // Total number of sixes in the match
   team1PowerplayScore?: number;
   team2PowerplayScore?: number;
   winningMargin?: string;
@@ -406,17 +408,73 @@ export const getMatchPredictions = async (matchId: string): Promise<PredictionGa
   }
 };
 
+/**
+ * Helper function to check if a match is within the 24-hour prediction window
+ * This provides server-side validation in addition to Firestore security rules
+ */
+export const isMatchWithinPredictionWindow = async (matchId: string): Promise<boolean> => {
+  try {
+    // Get the match document
+    const matchRef = doc(db, 'matches', matchId);
+    const matchSnap = await getDoc(matchRef);
+    
+    if (!matchSnap.exists()) {
+      console.error(`Match ${matchId} not found`);
+      return false;
+    }
+    
+    const matchData = matchSnap.data();
+    
+    // Check if admin has enabled predictions for this match regardless of time
+    if (matchData.isPredictionEnabledByAdmin === true) {
+      // Still ensure match hasn't started
+      return matchData.status === 'upcoming';
+    }
+    
+    const matchDate = matchData.date instanceof Timestamp 
+      ? matchData.date.toDate() 
+      : new Date(matchData.date);
+    
+    // Check if match status is upcoming
+    if (matchData.status !== 'upcoming') {
+      return false;
+    }
+    
+    // Calculate time difference in milliseconds and convert to hours
+    const now = new Date();
+    const timeDifferenceMs = matchDate.getTime() - now.getTime();
+    const timeDifferenceHours = timeDifferenceMs / (1000 * 60 * 60);
+    
+    // Return true if match is less than 24 hours away and in the future
+    return timeDifferenceHours > 0 && timeDifferenceHours <= 24;
+  } catch (error) {
+    console.error('Error checking if match is within prediction window:', error);
+    return false;
+  }
+};
+
+/**
+ * Create a new prediction for a match
+ */
 export const createPrediction = async (predictionData: Omit<PredictionGame, 'id'>): Promise<string> => {
   try {
-    const predictionsCollectionRef = collection(db, COLLECTIONS.PREDICTION_GAME);
-    const newPredictionRef = doc(predictionsCollectionRef);
+    // Server-side validation to ensure match is within prediction window
+    const isWithinWindow = await isMatchWithinPredictionWindow(predictionData.matchId);
+    if (!isWithinWindow) {
+      throw new Error('Predictions are only allowed within 24 hours of the match start time');
+    }
     
-    await setDoc(newPredictionRef, {
+    const predictionRef = doc(collection(db, 'predictionGames'));
+    const id = predictionRef.id;
+    const timestampsData = createTimestamps();
+    
+    await setDoc(predictionRef, {
+      id,
       ...predictionData,
-      ...createTimestamps()
+      ...timestampsData
     });
     
-    return newPredictionRef.id;
+    return id;
   } catch (error) {
     console.error('Error creating prediction:', error);
     throw error;
@@ -758,44 +816,58 @@ export const seedQuestionsIfNeeded = async () => {
       // Add standard prediction questions
       const standardQuestions = [
         {
-          id: 'winner-question',
+          id: 'winner',
           text: 'Which team will win this match?',
           type: 'winner',
           points: 10,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          negativePoints: 3, // Store as positive value, will be applied as negative
+          isActive: true
         },
         {
           id: 'top-batsman',
           text: 'Who will be the top batsman in this match?',
           type: 'topBatsman',
           points: 15,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          negativePoints: 5, // Store as positive value, will be applied as negative
+          isActive: true
         },
         {
           id: 'top-bowler',
           text: 'Who will be the top bowler in this match?',
           type: 'topBowler',
           points: 15,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          negativePoints: 5, // Store as positive value, will be applied as negative
+          isActive: true
         },
         {
           id: 'highest-total',
-          text: 'What will be the highest total of this match?',
+          text: 'Will the match total exceed 350 runs?',
           type: 'highestTotal',
           points: 10,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          negativePoints: 3, // Store as positive value, will be applied as negative
+          isActive: true
         },
         {
           id: 'more-sixes',
           text: 'Which team will hit more sixes?',
           type: 'moreSixes',
-          points: 5,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          points: 10,
+          negativePoints: 3, // Store as positive value, will be applied as negative
+          isActive: true
+        },
+        {
+          id: 'total-sixes',
+          text: 'How many sixes will be hit in this match?',
+          type: 'totalSixes',
+          options: [
+            { id: 'range1', value: '12-17', label: '12-17 sixes' },
+            { id: 'range2', value: '17-22', label: '17-22 sixes' },
+            { id: 'range3', value: '22-37', label: '22-37 sixes' },
+            { id: 'range4', value: '37-42', label: '37-42 sixes' }
+          ],
+          points: 15,
+          negativePoints: 5, // Store as positive value, will be applied as negative
+          isActive: true
         }
       ];
       
@@ -944,7 +1016,15 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
       throw new Error(`No match result found for match ${matchId}`);
     }
     
+    // Get the match data
+    const matchDoc = await getDoc(doc(db, COLLECTIONS.MATCHES, matchId));
+    if (!matchDoc.exists()) {
+      throw new Error(`Match ${matchId} not found`);
+    }
+    const match = matchDoc.data() as Match;
+    
     console.log(`Match result retrieved:`, result);
+    console.log(`Match data retrieved:`, match);
     console.log(`Prediction results:`, result.predictionResults);
     
     // Check if predictionResults exist
@@ -955,7 +1035,8 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
     
     // First, load all questions to get their point values
     const questionsCollection = collection(db, COLLECTIONS.QUESTIONS);
-    const questionsSnapshot = await getDocs(questionsCollection);
+    const questionsQuery = query(questionsCollection, where("isActive", "==", true));
+    const questionsSnapshot = await getDocs(questionsQuery);
     const questionsMap = new Map();
     
     questionsSnapshot.forEach(doc => {
@@ -964,7 +1045,9 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
         id: doc.id,
         text: question.text,
         type: question.type,
-        points: question.points || 10 // Default to 10 points if not specified
+        points: question.points || 10, // Default to 10 points if not specified
+        negativePoints: question.negativePoints || 0, // Default to 0 if not specified (no penalty)
+        isActive: question.isActive
       });
       
       // Also map by question type for easier lookup
@@ -973,12 +1056,20 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
           id: doc.id,
           text: question.text,
           type: question.type,
-          points: question.points || 10
+          points: question.points || 10,
+          negativePoints: question.negativePoints || 0,
+          isActive: question.isActive
         });
       }
     });
     
-    console.log(`Loaded ${questionsMap.size} questions for evaluation`);
+    console.log(`Loaded ${questionsMap.size} active questions for evaluation`);
+    
+    // Get team data for reference
+    const team1Doc = await getDoc(doc(db, COLLECTIONS.TEAMS, match.team1));
+    const team2Doc = await getDoc(doc(db, COLLECTIONS.TEAMS, match.team2));
+    const team1 = team1Doc.exists() ? team1Doc.data() : { name: match.team1 };
+    const team2 = team2Doc.exists() ? team2Doc.data() : { name: match.team2 };
     
     // Now let's evaluate predictions
     // Get all prediction answers for this match
@@ -1002,231 +1093,184 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
     }> = {};
     
     // Process each prediction answer
-    predictionSnapshot.forEach((docSnapshot) => {
-      const predictionAnswer = docSnapshot.data();
-      const questionId = predictionAnswer.questionId;
-      const userAnswer = predictionAnswer.answer;
-      const userId = predictionAnswer.userId;
-      console.log(`Evaluating prediction for user: ${userId}, question: ${questionId}, answer: ${userAnswer}`);
+    for (const docSnapshot of predictionSnapshot.docs) {
+      const prediction = docSnapshot.data();
+      const { userId, questionId, answer: userAnswer } = prediction;
       
-      // Initialize user stats if not already tracked
-      if (userId && !userPointsMap[userId]) {
+      // Initialize user in points map if not exists
+      if (!userPointsMap[userId]) {
         userPointsMap[userId] = {
           totalPoints: 0,
           correctPredictions: 0,
           totalPredictions: 1
         };
-      } else if (userId) {
+      } else {
         userPointsMap[userId].totalPredictions++;
       }
       
-      // Standardize question ID to handle different formats
-      let standardQuestionId = questionId.toLowerCase();
+      // Get the correct answer from predictionResults
+      // First, standardize the question ID for lookup
+      const standardQuestionId = questionId.toLowerCase().replace(/\s+/g, '-');
       
-      // Remove any prefix containing the match ID
-      if (standardQuestionId.startsWith(`${matchId}-`)) {
-        standardQuestionId = standardQuestionId.substring(matchId.length + 1);
-      }
+      // Look for the answer in predictionResults with different key formats
+      let correctAnswer = result.predictionResults[questionId] || 
+                         result.predictionResults[standardQuestionId] || 
+                         result.predictionResults[`${matchId}-${standardQuestionId}`];
       
-      // Remove common suffixes
-      if (standardQuestionId.includes('-question')) {
-        standardQuestionId = standardQuestionId.replace('-question', '');
-      }
-      
-      // Normalize common question types
-      if (standardQuestionId.includes('batsman') || standardQuestionId === 'top-batsman') {
-        standardQuestionId = 'top-batsman';
-      } else if (standardQuestionId.includes('bowler') || standardQuestionId === 'top-bowler') {
-        standardQuestionId = 'top-bowler';
-      } else if (standardQuestionId.includes('highest-total') || standardQuestionId === 'highest-total') {
-        standardQuestionId = 'highest-total';
-      } else if (standardQuestionId.includes('more-sixes') || standardQuestionId === 'more-sixes' || standardQuestionId === 'moresixes') {
-        standardQuestionId = 'more-sixes';
-      } else if (standardQuestionId === 'winner' || standardQuestionId.includes('match-winner')) {
-        standardQuestionId = 'winner';
-      }
-      
-      console.log(`Standardized question ID: ${standardQuestionId} from original: ${questionId}`);
-      
-      // Look for a corresponding result
-      // Try different keys since the format might vary
-      const possibleKeys = [
-        `${matchId}-${standardQuestionId}`,  // matchId-questionId 
-        standardQuestionId,                  // standardized questionId
-        questionId,                          // original questionId
-        questionId.toLowerCase(),            // lowercase original
-        // Common variations
-        'winner', 
-        'top-batsman', 
-        'top-bowler', 
-        'highest-total',
-        'more-sixes',
-        // Without hyphens
-        standardQuestionId.replace(/-/g, '')
-      ];
-      
-      let correctAnswer = null;
-      let keyUsed = '';
-      
-      for (const key of possibleKeys) {
-        if (result.predictionResults && result.predictionResults[key] !== undefined) {
-          correctAnswer = result.predictionResults[key];
-          keyUsed = key;
-          console.log(`Found correct answer using key: ${key}, value: ${correctAnswer}`);
-          break;
-        }
-      }
-      
-      // If still not found, try to infer from the result fields directly
-      if (correctAnswer === null) {
+      // If not found but it's a standard question, try to get from direct fields
+      if (correctAnswer === undefined) {
         if (standardQuestionId === 'winner') {
           correctAnswer = result.winner;
-          keyUsed = 'winner field';
-          console.log(`Using match winner as correct answer: ${correctAnswer}`);
         } else if (standardQuestionId === 'top-batsman') {
           correctAnswer = result.topBatsmanId;
-          keyUsed = 'topBatsmanId field';
-          console.log(`Using top batsman as correct answer: ${correctAnswer}`);
         } else if (standardQuestionId === 'top-bowler') {
           correctAnswer = result.topBowlerId;
-          keyUsed = 'topBowlerId field';
-          console.log(`Using top bowler as correct answer: ${correctAnswer}`);
-        } else if (standardQuestionId === 'highest-total') {
-          correctAnswer = result.highestTotal?.toString();
-          keyUsed = 'highestTotal field';
-          console.log(`Using highest total as correct answer: ${correctAnswer}`);
         } else if (standardQuestionId === 'more-sixes') {
           correctAnswer = result.moreSixes;
-          keyUsed = 'moreSixes field';
-          console.log(`Using more sixes as correct answer: ${correctAnswer}`);
+        } else if (standardQuestionId === 'highest-total') {
+          correctAnswer = result.highestTotal?.toString();
         }
       }
+            
+      // Skip evaluation if no correct answer found
+      if (correctAnswer === undefined) {
+        console.log(`No correct answer found for question: ${questionId}, skipping evaluation`);
+        continue;
+      }
       
-      // If we found a correct answer, evaluate the prediction
-      if (correctAnswer !== null) {
-        let isCorrect = false;
-        let pointsEarned = 0;
+      // Get question details from our loaded questions map
+      const question = questionsMap.get(standardQuestionId) || 
+                      questionsMap.get(questionId) || 
+                      questionsMap.get(questionId.toLowerCase()) || 
+                      { id: questionId, points: 10, negativePoints: 0, type: 'unknown' };
+      
+      const questionPoints = question.points || 10;
+      const negativePoints = question.negativePoints || 0;
+      const questionType = question.type || standardQuestionId;
+      
+      console.log(`Evaluating question: ${questionType} (ID: ${questionId})`);
+      console.log(`Points for correct answer: ${questionPoints}, negative points: ${negativePoints}`);
+      console.log(`User answer: ${userAnswer}, Correct answer: ${correctAnswer}`);
+      
+      let isCorrect = false;
+      
+      // Evaluate based on question type with simplified logic
+      if (questionType === 'winner') {
+        // Simple exact match for winner
+        isCorrect = userAnswer === correctAnswer;
+      } 
+      else if (questionType === 'topBatsman') {
+        // Normalize player names for comparison
+        const standardizedUserAnswer = standardizePlayerName(userAnswer);
+        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
+      } 
+      else if (questionType === 'topBowler') {
+        // Normalize player names for comparison
+        const standardizedUserAnswer = standardizePlayerName(userAnswer);
+        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
+      } 
+      else if (questionType === 'moreSixes') {
+        // Simple exact match for team with more sixes
+        isCorrect = userAnswer === correctAnswer;
+      }
+      else if (questionType === 'totalSixes') {
+        // Handle range-based sixes evaluation
+        // The correct answer should be the actual number of sixes
+        const actualSixes = parseInt(correctAnswer?.toString() || '0');
         
-        // Get question points from our loaded questions map
-        const question = questionsMap.get(standardQuestionId) || 
-                         questionsMap.get(questionId) || 
-                         { points: 10, type: 'unknown' }; // Default if not found
-        
-        let questionPoints = question.points;
-        const questionType = question.type || standardQuestionId;
-        
-        console.log(`Question details: ID: ${standardQuestionId}, Type: ${questionType}, Points: ${questionPoints}`);
-        console.log(`Comparing user answer: ${userAnswer} with correct answer: ${correctAnswer} (from ${keyUsed})`);
-        
-        // Evaluate based on question type
-        if (questionType === 'winner' || standardQuestionId === 'winner') {
-          // Exact match for winner
-          isCorrect = userAnswer === correctAnswer;
-        } else if (questionType === 'highestTotal' || standardQuestionId === 'highest-total') {
-          // Within 15 runs for highest total
-          const userTotal = parseInt(userAnswer);
-          const correctTotal = parseInt(correctAnswer);
+        // User answer is in the format "X-Y" (e.g., "12-17")
+        const userRange = userAnswer.split('-');
+        if (userRange.length === 2) {
+          const minSixes = parseInt(userRange[0]);
+          const maxSixes = parseInt(userRange[1]);
           
-          if (!isNaN(userTotal) && !isNaN(correctTotal)) {
-            isCorrect = Math.abs(userTotal - correctTotal) <= 15;
-            console.log(`Highest total evaluation: User: ${userTotal}, Correct: ${correctTotal}, Difference: ${Math.abs(userTotal - correctTotal)}, IsCorrect: ${isCorrect}`);
-          }
-        } else if (questionType === 'topBatsman' || standardQuestionId === 'top-batsman') {
-          // Use standardized names for top batsman comparison
-          const standardizedUserAnswer = standardizePlayerName(userAnswer);
-          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+          // Check if the actual number falls within the user's selected range
+          isCorrect = actualSixes >= minSixes && actualSixes <= maxSixes;
           
-          console.log(`Comparing standardized batsman names: "${standardizedUserAnswer}" with "${standardizedCorrectAnswer}"`);
-          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-        } else if (questionType === 'topBowler' || standardQuestionId === 'top-bowler') {
-          // Use standardized names for top bowler comparison
-          const standardizedUserAnswer = standardizePlayerName(userAnswer);
-          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
-          
-          console.log(`Comparing standardized bowler names: "${standardizedUserAnswer}" with "${standardizedCorrectAnswer}"`);
-          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-        } else if (questionType === 'moreSixes' || standardQuestionId === 'more-sixes') {
-          // Exact match for team with more sixes
-          isCorrect = userAnswer === correctAnswer;
+          console.log(`Total sixes evaluation: User predicted ${userAnswer} range, Actual sixes: ${actualSixes}, IsCorrect: ${isCorrect}`);
         } else {
-          // Default evaluation for any other question types
-          isCorrect = userAnswer === correctAnswer;
+          console.log(`Invalid total sixes answer format: ${userAnswer}`);
+          isCorrect = false;
+        }
+      }
+      else if (questionType === 'highestTotal') {
+        // For "Will total exceed X?" questions
+        // Parse the total from result - this might be a number OR a yes/no answer
+        let actualExceeded = false;
+        
+        // Handle different formats of the correct answer
+        if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
+          // If the correct answer is a number (from admin input)
+          const actualTotal = parseInt(correctAnswer?.toString() || '0');
+          const defaultThreshold = 350;
+          actualExceeded = actualTotal > defaultThreshold;
+        } else if (typeof correctAnswer === 'string') {
+          // If the correct answer is already a string like 'yes'/'no' or 'true'/'false'
+          const answerLower = correctAnswer.toLowerCase();
+          actualExceeded = answerLower === 'yes' || answerLower === 'true';
         }
         
-        pointsEarned = isCorrect ? questionPoints : 0;
+        // Evaluate based on user's yes/no answer
+        const userPrediction = userAnswer.toLowerCase();
+        const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
         
-        // Update the prediction answer
-        batch.update(docSnapshot.ref, {
-          isCorrect,
-          pointsEarned,
-          evaluatedAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
+        isCorrect = userPredictedExceeded === actualExceeded;
         
-        updateCount++;
-        
-        // Aggregate points by user for leaderboard updates
-        if (userId) {
-          if (isCorrect) {
-            userPointsMap[userId].totalPoints += pointsEarned;
-            userPointsMap[userId].correctPredictions++;
-          }
-        }
-        
-        console.log(`Evaluated prediction: Question: ${questionId}, User answer: ${userAnswer}, Correct answer: ${correctAnswer}, Is correct: ${isCorrect}, Points earned: ${pointsEarned}`);
-      } else {
-        console.log(`Could not find correct answer for question: ${questionId}`);
+        console.log(`Highest total evaluation: User predicted exceed: ${userPredictedExceeded}, Actual exceeded: ${actualExceeded}, IsCorrect: ${isCorrect}`);
+      } 
+      else {
+        // For any other question type, use simple exact match
+        isCorrect = userAnswer === correctAnswer;
       }
-    });
-    
-    // Update user profiles with earned points
-    for (const [userId, stats] of Object.entries(userPointsMap)) {
-      console.log(`Updating points for user: ${userId}, Total points: ${stats.totalPoints}, Correct predictions: ${stats.correctPredictions}`);
       
-      const userRef = doc(db, 'users', userId);
+      // Calculate points - award positive points if correct, deduct negative points if wrong
+      const pointsEarned = isCorrect ? questionPoints : -negativePoints; // negativePoints is stored as a positive value, so we add the negative sign here
       
-      // Get current user data
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // Update user document with new points
-        batch.update(userRef, {
-          // Update total season points
-          totalPoints: (userData.totalPoints || 0) + stats.totalPoints,
-          // Update weekly points
-          weeklyPoints: (userData.weeklyPoints || 0) + stats.totalPoints,
-          // Update accuracy stats
-          totalPredictions: (userData.totalPredictions || 0) + stats.totalPredictions,
-          correctPredictions: (userData.correctPredictions || 0) + stats.correctPredictions,
-          // Calculate overall accuracy
-          overallAccuracy: Math.round(
-            ((userData.correctPredictions || 0) + stats.correctPredictions) /
-            ((userData.totalPredictions || 0) + stats.totalPredictions) * 100
-          ),
-          // Update timestamp
-          updatedAt: serverTimestamp()
-        });
+      // Update the prediction answer document
+      batch.update(docSnapshot.ref, {
+        isCorrect,
+        pointsEarned,
+        evaluatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      updateCount++;
+      
+      // Update user points
+      userPointsMap[userId].totalPoints += pointsEarned; // Add positive or negative points
+      if (isCorrect) {
+        userPointsMap[userId].correctPredictions++;
       }
+      
+      console.log(`Evaluated prediction for user ${userId}: Question: ${questionId}, IsCorrect: ${isCorrect}, Points: ${pointsEarned}`);
     }
     
-    // Commit all updates
+    // Commit all prediction updates
     if (updateCount > 0) {
       await batch.commit();
-      console.log(`Evaluated ${updateCount} predictions for match ${matchId}`);
+      console.log(`Updated ${updateCount} predictions`);
+      
+      // Update match result to mark as evaluated
+      const resultRef = doc(db, COLLECTIONS.MATCH_RESULTS, result.id);
+      await updateDoc(resultRef, {
+        isEvaluated: true,
+        evaluatedAt: serverTimestamp()
+      });
+      
+      // Update match leaderboard
+      await createMatchLeaderboard(matchId, userPointsMap);
+      
+      // Update global leaderboard for each user
+      for (const userId of Object.keys(userPointsMap)) {
+        await updateGlobalLeaderboard(userId, matchId);
+      }
     }
     
-    // Mark the result as evaluated
-    const resultRef = doc(db, COLLECTIONS.MATCH_RESULTS, result.id);
-    await updateDoc(resultRef, {
-      isEvaluated: true,
-      evaluatedAt: serverTimestamp()
-    });
-    
-    // Create or update match leaderboard document
-    await createMatchLeaderboard(matchId, userPointsMap);
+    console.log('Prediction evaluation completed successfully');
   } catch (error) {
-    console.error(`Error evaluating predictions for match ${matchId}:`, error);
+    console.error('Error evaluating predictions:', error);
     throw error;
   }
 };
@@ -1402,9 +1446,15 @@ export const resetMatchPredictions = async (matchId: string): Promise<void> => {
           };
         }
         
-        // Add points to deduct if answer was correct
+        // Handle both positive and negative points now
+        const pointsEarned = answer.pointsEarned || 0;
+        
+        // For correct answers, we need to deduct positive points
+        // For incorrect answers with negative points, we need to add those points back
+        userPointsMap[userId].pointsToDeduct += pointsEarned;
+        
+        // Only count as correct if it was actually correct
         if (answer.isCorrect) {
-          userPointsMap[userId].pointsToDeduct += answer.pointsEarned || 0;
           userPointsMap[userId].correctToDeduct += 1;
         }
         
@@ -1639,5 +1689,176 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
   } catch (error) {
     console.error("Error updating global leaderboard:", error);
     throw error;
+  }
+};
+
+export const savePredictionAnswer = async (answer: Omit<PredictionGame, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    // Server-side validation to ensure match is within prediction window
+    const isWithinWindow = await isMatchWithinPredictionWindow(answer.matchId);
+    if (!isWithinWindow) {
+      throw new Error('Predictions are only allowed within 24 hours of the match start time');
+    }
+    
+    const answersRef = doc(collection(db, 'predictionAnswers'));
+    const id = answersRef.id;
+    const timestampsData = createTimestamps();
+    
+    await setDoc(answersRef, {
+      id,
+      ...answer,
+      ...timestampsData
+    });
+    
+    return id;
+  } catch (error) {
+    console.error('Error saving prediction answer:', error);
+    throw error;
+  }
+};
+
+export const savePredictionAnswers = async (
+  userId: string, 
+  matchId: string, 
+  predictionGameId: string, 
+  answers: Record<string, string>
+): Promise<string[]> => {
+  try {
+    // Server-side validation to ensure match is within prediction window
+    const isWithinWindow = await isMatchWithinPredictionWindow(matchId);
+    if (!isWithinWindow) {
+      throw new Error('Predictions are only allowed within 24 hours of the match start time');
+    }
+    
+    const batch = writeBatch(db);
+    const answerIds: string[] = [];
+    const predictionAnswersRef = collection(db, 'predictionAnswers');
+    
+    // Create new answer documents for each question
+    for (const [questionId, answer] of Object.entries(answers)) {
+      if (!answer) continue; // Skip empty answers
+      
+      const newAnswerRef = doc(predictionAnswersRef);
+      const id = newAnswerRef.id;
+      answerIds.push(id);
+      
+      batch.set(newAnswerRef, {
+        id,
+        userId,
+        matchId,
+        predictionGameId,
+        questionId,
+        answer,
+        ...createTimestamps()
+      });
+    }
+    
+    await batch.commit();
+    return answerIds;
+  } catch (error) {
+    console.error('Error saving prediction answers:', error);
+    throw error;
+  }
+};
+
+export const seedStandardQuestionsIfNeeded = async (): Promise<boolean> => {
+  try {
+    console.log('Checking for existing questions...');
+    
+    // Get all questions from the questions collection
+    const questionsCollection = collection(db, COLLECTIONS.QUESTIONS);
+    const questionsSnapshot = await getDocs(questionsCollection);
+    
+    // Check if we have any standard questions
+    const hasStandardQuestions = questionsSnapshot.docs.some(doc => {
+      const data = doc.data();
+      return data.type && ['winner', 'topBatsman', 'topBowler', 'highestTotal', 'moreSixes', 'totalSixes'].includes(data.type);
+    });
+    
+    if (hasStandardQuestions) {
+      console.log('Standard questions already exist, skipping seed operation');
+      return false;
+    }
+    
+    console.log('No standard questions found, seeding default questions...');
+    
+    // Define standard questions with clear point values and negative points
+    const standardQuestions = [
+      {
+        id: 'winner',
+        text: 'Which team will win this match?',
+        type: 'winner',
+        points: 10,
+        negativePoints: 3, // Store as positive value, will be applied as negative
+        isActive: true
+      },
+      {
+        id: 'top-batsman',
+        text: 'Who will be the top batsman in this match?',
+        type: 'topBatsman',
+        points: 15,
+        negativePoints: 5, // Store as positive value, will be applied as negative
+        isActive: true
+      },
+      {
+        id: 'top-bowler',
+        text: 'Who will be the top bowler in this match?',
+        type: 'topBowler',
+        points: 15,
+        negativePoints: 5, // Store as positive value, will be applied as negative
+        isActive: true
+      },
+      {
+        id: 'highest-total',
+        text: 'Will the match total exceed 350 runs?',
+        type: 'highestTotal',
+        points: 10,
+        negativePoints: 3, // Store as positive value, will be applied as negative
+        isActive: true
+      },
+      {
+        id: 'more-sixes',
+        text: 'Which team will hit more sixes?',
+        type: 'moreSixes',
+        points: 10,
+        negativePoints: 3, // Store as positive value, will be applied as negative
+        isActive: true
+      },
+      {
+        id: 'total-sixes',
+        text: 'How many sixes will be hit in this match?',
+        type: 'totalSixes',
+        options: [
+          { id: 'range1', value: '12-17', label: '12-17 sixes' },
+          { id: 'range2', value: '17-22', label: '17-22 sixes' },
+          { id: 'range3', value: '22-37', label: '22-37 sixes' },
+          { id: 'range4', value: '37-42', label: '37-42 sixes' }
+        ],
+        points: 15,
+        negativePoints: 5, // Store as positive value, will be applied as negative
+        isActive: true
+      }
+    ];
+    
+    // Create batch write
+    const batch = writeBatch(db);
+    
+    // Add each standard question
+    standardQuestions.forEach(question => {
+      const questionRef = doc(db, COLLECTIONS.QUESTIONS, question.id);
+      batch.set(questionRef, {
+        ...question,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    });
+    
+    await batch.commit();
+    console.log('Successfully seeded standard questions');
+    
+    return true;
+  } catch (error) {
+    console.error('Error seeding standard questions:', error);
+    return false;
   }
 };

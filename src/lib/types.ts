@@ -108,8 +108,9 @@ export interface Prediction {
 export interface Question {
   id: string;
   text: string;
-  type: 'winner' | 'topBatsman' | 'topBowler' | 'highestTotal' | 'moreSixes' | 'custom';
+  type: 'winner' | 'topBatsman' | 'topBowler' | 'highestTotal' | 'moreSixes' | 'totalSixes' | 'custom';
   points: number;
+  negativePoints?: number; // Points deducted for wrong answers
   options?: { id: string; value: string; label: string }[];
   createdAt?: string | any; // Allow Firestore Timestamp
   updatedAt?: string | any; // Allow Firestore Timestamp

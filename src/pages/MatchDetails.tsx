@@ -99,66 +99,153 @@ const MatchDetails = () => {
           return;
         }
         
-        // Convert team names to squad IDs (lowercase, no spaces)
-        const team1SquadId = matchData.team1.toLowerCase().replace(/\s+/g, '');
-        const team2SquadId = matchData.team2.toLowerCase().replace(/\s+/g, '');
+        // Normalize team names to IDs (lowercase, no spaces)
+        const team1Identifier = matchData.team1 || '';
+        const team2Identifier = matchData.team2 || '';
+        const team1SquadId = team1Identifier.toLowerCase().replace(/\s+/g, '');
+        const team2SquadId = team2Identifier.toLowerCase().replace(/\s+/g, '');
 
         console.log('Team names from match data:', {
-          team1Name: matchData.team1,
-          team2Name: matchData.team2
+          team1Name: team1Identifier,
+          team2Name: team2Identifier
         });
         
-        console.log('Fetching squads with IDs:', {
-          team1SquadId,
-          team2SquadId
-        });
+        // List of known outdated players to filter out
+        const knownOutdatedPlayers = ['Shreyas Iyer'];
 
-        // Fetch squads for both teams
-        let squad1Data, squad2Data;
+        // FIRST ATTEMPT: Try to load player data from teams collection
+        let team1Players: Player[] = [];
+        let team2Players: Player[] = [];
+        let teamsLoaded = false;
+        
         try {
-          [squad1Data, squad2Data] = await Promise.all([
-            getSquad(team1SquadId),
-            getSquad(team2SquadId)
+          console.log('First attempting to fetch team data from "teams" collection');
+          
+          const teamsCollection = collection(db, "teams");
+          const team1Ref = doc(teamsCollection, team1SquadId);
+          const team2Ref = doc(teamsCollection, team2SquadId);
+          
+          // Fetch both teams in parallel
+          const [team1Doc, team2Doc] = await Promise.all([
+            getDoc(team1Ref),
+            getDoc(team2Ref)
           ]);
-
-          console.log('Squad 1 data received:', squad1Data);
-          console.log('Squad 2 data received:', squad2Data);
           
-          if (!squad1Data) {
-            console.warn(`No squad found for team "${matchData.team1}" (ID: ${team1SquadId})`);
+          console.log('Teams collection check:', { 
+            team1Exists: team1Doc.exists(), 
+            team2Exists: team2Doc.exists() 
+          });
+          
+          // Process team 1 squad if it exists
+          if (team1Doc.exists()) {
+            const teamData = team1Doc.data() as { 
+              name: string; 
+              squad?: Record<string, { name: string; role: string; age?: string }>
+            };
+            console.log(`Team 1 "${teamData.name}" found in teams collection`);
+            
+            if (teamData.squad && Object.keys(teamData.squad).length > 0) {
+              team1Players = Object.values(teamData.squad)
+                .filter(player => !knownOutdatedPlayers.includes(player.name))
+                .map(player => ({
+                  id: `${team1SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
+                  name: player.name,
+                  role: convertToPlayerRole(player.role),
+                  teamId: team1Identifier,
+                  image: ''
+                }));
+              
+              console.log(`Loaded ${team1Players.length} players for ${team1Identifier} from teams collection`);
+              teamsLoaded = true;
+            } else {
+              console.log(`Team 1 found but has no squad in teams collection`);
+            }
+          } else {
+            console.log(`Team 1 with ID ${team1SquadId} not found in teams collection`);
           }
           
-          if (!squad2Data) {
-            console.warn(`No squad found for team "${matchData.team2}" (ID: ${team2SquadId})`);
+          // Process team 2 squad if it exists
+          if (team2Doc.exists()) {
+            const teamData = team2Doc.data() as { 
+              name: string; 
+              squad?: Record<string, { name: string; role: string; age?: string }>
+            };
+            console.log(`Team 2 "${teamData.name}" found in teams collection`);
+            
+            if (teamData.squad && Object.keys(teamData.squad).length > 0) {
+              team2Players = Object.values(teamData.squad)
+                .filter(player => !knownOutdatedPlayers.includes(player.name))
+                .map(player => ({
+                  id: `${team2SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
+                  name: player.name,
+                  role: convertToPlayerRole(player.role),
+                  teamId: team2Identifier,
+                  image: ''
+                }));
+              
+              console.log(`Loaded ${team2Players.length} players for ${team2Identifier} from teams collection`);
+              teamsLoaded = true;
+            } else {
+              console.log(`Team 2 found but has no squad in teams collection`);
+            }
+          } else {
+            console.log(`Team 2 with ID ${team2SquadId} not found in teams collection`);
           }
-        } catch (squadError) {
-          console.error('Error fetching squad data:', squadError);
-          squad1Data = null;
-          squad2Data = null;
+        } catch (teamsError) {
+          console.error('Error fetching from teams collection:', teamsError);
         }
 
-        // Convert squad data to Player array - only use Firestore data
-        const squad1Players = squad1Data?.squad?.map(player => ({
-          id: `${team1SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
-          name: player.name,
-          role: convertToPlayerRole(player.role),
-          teamId: matchData.team1,
-          image: ''
-        })) || [];
+        // FALLBACK: If teams collection didn't provide player data, use the squads collection
+        if (!teamsLoaded || team1Players.length === 0 || team2Players.length === 0) {
+          console.log('Falling back to squads collection...');
+          
+          try {
+            let squad1Data, squad2Data;
+            [squad1Data, squad2Data] = await Promise.all([
+              getSquad(team1SquadId),
+              getSquad(team2SquadId)
+            ]);
+  
+            console.log('Squad 1 data:', squad1Data ? 'Found' : 'Not found');
+            console.log('Squad 2 data:', squad2Data ? 'Found' : 'Not found');
+            
+            // Only process squad1 if we don't already have team1Players
+            if (team1Players.length === 0 && squad1Data?.squad) {
+              team1Players = squad1Data.squad
+                .filter((player: any) => !knownOutdatedPlayers.includes(player.name))
+                .map((player: any) => ({
+                  id: `${team1SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
+                  name: player.name,
+                  role: convertToPlayerRole(player.role),
+                  teamId: team1Identifier,
+                  image: ''
+                }));
+              
+              console.log(`Loaded ${team1Players.length} players for ${team1Identifier} from squads collection`);
+            }
+  
+            // Only process squad2 if we don't already have team2Players
+            if (team2Players.length === 0 && squad2Data?.squad) {
+              team2Players = squad2Data.squad
+                .filter((player: any) => !knownOutdatedPlayers.includes(player.name))
+                .map((player: any) => ({
+                  id: `${team2SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
+                  name: player.name,
+                  role: convertToPlayerRole(player.role),
+                  teamId: team2Identifier,
+                  image: ''
+                }));
+              
+              console.log(`Loaded ${team2Players.length} players for ${team2Identifier} from squads collection`);
+            }
+          } catch (squadError) {
+            console.error('Error fetching squad data:', squadError);
+          }
+        }
 
-        const squad2Players = squad2Data?.squad?.map(player => ({
-          id: `${team2SquadId}-${player.name.toLowerCase().replace(/\s+/g, '-')}`,
-          name: player.name,
-          role: convertToPlayerRole(player.role),
-          teamId: matchData.team2,
-          image: ''
-        })) || [];
-
-        console.log('Processed squad players:', {
-          squad1Players: squad1Players.length > 0 ? squad1Players : 'No players found',
-          squad2Players: squad2Players.length > 0 ? squad2Players : 'No players found',
-          squad1Bowlers: squad1Players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder').length,
-          squad2Bowlers: squad2Players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder').length
+        console.log('Final player counts:', {
+          team1Players: team1Players.length,
+          team2Players: team2Players.length
         });
 
         // Create a compatible Match object from Firestore data
@@ -178,9 +265,9 @@ const MatchDetails = () => {
 
         // Update state with fetched data
         setMatch(convertedMatch);
-        setSquad1(squad1Players);
-        setSquad2(squad2Players);
-        setPlayers([...squad1Players, ...squad2Players]);
+        setSquad1(team1Players);
+        setSquad2(team2Players);
+        setPlayers([...team1Players, ...team2Players]);
 
       } catch (err) {
         console.error('Error fetching match data:', err);

@@ -95,6 +95,7 @@ export default function MatchResultUpdater() {
   const [topBowlerId, setTopBowlerId] = useState(''); // top-bowler
   const [highestTotal, setHighestTotal] = useState(''); // highest-total
   const [moreSixes, setMoreSixes] = useState(''); // more-sixes
+  const [totalSixes, setTotalSixes] = useState(''); // total-sixes
   
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [hasResult, setHasResult] = useState(false);
@@ -253,6 +254,7 @@ export default function MatchResultUpdater() {
     setTopBowlerId('');
     setHighestTotal('');
     setMoreSixes('');
+    setTotalSixes('');
   };
 
   const resetForm = () => {
@@ -355,6 +357,7 @@ export default function MatchResultUpdater() {
         setTopBatsmanId(existingResult.topBatsmanId || '');
         setTopBowlerId(existingResult.topBowlerId || '');
         setMoreSixes(existingResult.moreSixes || '');
+        setTotalSixes(existingResult.totalSixes?.toString() || '');
         
         setHasResult(true);
         
@@ -482,6 +485,12 @@ export default function MatchResultUpdater() {
         predictionResults[`${selectedMatchId}-more-sixes`] = moreSixes;
       }
       
+      // Total Sixes (15 points)
+      if (totalSixes) {
+        predictionResults['total-sixes'] = totalSixes;
+        predictionResults[`${selectedMatchId}-total-sixes`] = totalSixes;
+      }
+      
       // Create the comprehensive result object
       const resultData: Omit<MatchResult, 'id' | 'matchId' | 'createdBy' | 'createdAt' | 'updatedAt'> = {
         winner: winnerTeamId,
@@ -491,6 +500,7 @@ export default function MatchResultUpdater() {
         topBatsmanId: topBatsmanId ? standardizePlayerName(topBatsmanId) : undefined,
         topBowlerId: topBowlerId ? standardizePlayerName(topBowlerId) : undefined,
         moreSixes,
+        totalSixes: totalSixes ? parseInt(totalSixes) : undefined,
         predictionResults,
         isEvaluated: false // Will be set to true after evaluation completes
       };
@@ -1058,15 +1068,69 @@ export default function MatchResultUpdater() {
                   </div>
                   
                   {/* Highest Total (10 points) */}
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <Label htmlFor="highestTotal">Highest Total (10 points)</Label>
-                    <Input 
-                      id="highestTotal" 
-                      type="number"
-                      placeholder="Enter the highest team total" 
-                      value={highestTotal}
-                      onChange={(e) => setHighestTotal(e.target.value)}
-                    />
+                    
+                    {/* Add radio buttons for Yes/No */}
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-500">Did the match total exceed 350 runs?</p>
+                      <div className="flex space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="highestTotal-yes"
+                            name="highestTotal-exceed"
+                            checked={highestTotal !== '' && parseInt(highestTotal) > 350}
+                            onChange={() => {
+                              // If we don't have a numeric value yet, set a default
+                              if (!highestTotal) {
+                                setHighestTotal('351');
+                              } else if (parseInt(highestTotal) <= 350) {
+                                // Ensure value exceeds 350 if selecting "Yes"
+                                setHighestTotal('351');
+                              }
+                            }}
+                            className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <Label htmlFor="highestTotal-yes" className="text-sm font-normal">
+                            Yes ({'>'}350)
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="highestTotal-no"
+                            name="highestTotal-exceed"
+                            checked={highestTotal !== '' && parseInt(highestTotal) <= 350}
+                            onChange={() => {
+                              // If we don't have a numeric value yet, set a default
+                              if (!highestTotal) {
+                                setHighestTotal('350');
+                              } else if (parseInt(highestTotal) > 350) {
+                                // Ensure value doesn't exceed 350 if selecting "No"
+                                setHighestTotal('350');
+                              }
+                            }}
+                            className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <Label htmlFor="highestTotal-no" className="text-sm font-normal">
+                            No (≤350)
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Actual highest total numeric input */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-2">Enter the actual highest team total:</p>
+                      <Input 
+                        id="highestTotal" 
+                        type="number"
+                        placeholder="Enter the highest team total" 
+                        value={highestTotal}
+                        onChange={(e) => setHighestTotal(e.target.value)}
+                      />
+                    </div>
                   </div>
                   
                   {/* More Sixes (5 points) */}
@@ -1086,6 +1150,18 @@ export default function MatchResultUpdater() {
                         <SelectItem value="tie">Tie (Equal Sixes)</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  {/* Total Sixes (15 points) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="totalSixes">Total Sixes in Match (15 points)</Label>
+                    <Input 
+                      id="totalSixes" 
+                      type="number"
+                      placeholder="Enter the total number of sixes" 
+                      value={totalSixes}
+                      onChange={(e) => setTotalSixes(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>

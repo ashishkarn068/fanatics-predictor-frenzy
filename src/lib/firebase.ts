@@ -3,6 +3,7 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, User, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getFirebaseConfig } from "@/utils/firebase-config";
+import { seedStandardQuestionsIfNeeded } from "@/utils/firestore-collections";
 
 let app: FirebaseApp | null = null;
 let auth: ReturnType<typeof getAuth> | null = null;
@@ -37,6 +38,19 @@ export async function initializeFirebase() {
           } else if (err.code === 'unimplemented') {
             console.warn('The current browser does not support persistence.');
           }
+        });
+        
+      // Seed standard questions if needed
+      seedStandardQuestionsIfNeeded()
+        .then(seeded => {
+          if (seeded) {
+            console.log('Standard questions seeded successfully');
+          } else {
+            console.log('Standard questions already exist, no seeding needed');
+          }
+        })
+        .catch(err => {
+          console.error('Error seeding standard questions:', err);
         });
     }
 

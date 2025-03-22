@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, Trophy } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { COLLECTIONS } from "@/utils/firestore-collections";
 
 interface LeaderboardProps {
   matchId?: string;
@@ -70,10 +71,8 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         
         if (activeTab === "match" && matchId) {
           unsubscribe = await setupMatchLeaderboardListener(matchId);
-        } else if (activeTab === "weekly") {
-          unsubscribe = setupWeeklyLeaderboardListener();
         } else {
-          unsubscribe = setupSeasonLeaderboardListener();
+          unsubscribe = setupGlobalLeaderboardListener();
         }
       } catch (err) {
         console.error("Error setting up leaderboard listener:", err);
@@ -98,16 +97,33 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
     try {
       const questionsRef = collection(db, "questions");
       const questionsSnapshot = await getDocs(questionsRef);
+      
       const questionMap = new Map<string, {text: string, points: number}>();
       
       questionsSnapshot.forEach((doc) => {
         const data = doc.data();
+        // Store by both ID and type for better matching
         questionMap.set(doc.id, {
           text: data.text,
           points: data.points || 0
         });
+        
+        // Also store by type if available
+        if (data.type) {
+          questionMap.set(data.type, {
+            text: data.text,
+            points: data.points || 0
+          });
+          
+          // Store lowercase versions for case-insensitive matching
+          questionMap.set(data.type.toLowerCase(), {
+            text: data.text,
+            points: data.points || 0
+          });
+        }
       });
       
+      console.log('Question map created with entries:', Array.from(questionMap.keys()).join(', '));
       setQuestions(questionMap);
       
     } catch (error) {
@@ -201,11 +217,31 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
           
           predictionsSnapshot.forEach((doc) => {
             const prediction = doc.data();
-            const question = questions.get(prediction.questionId);
+            // Try to get question by ID first
+            let question = questions.get(prediction.questionId);
+            
+            // If not found, try lowercase
+            if (!question && prediction.questionId) {
+              question = questions.get(prediction.questionId.toLowerCase());
+            }
+            
+            // Determine question text with fallbacks for specific question types
+            let questionText = question?.text;
+            if (!questionText && prediction.questionId) {
+              const questionId = prediction.questionId;
+              questionText = 
+                questionId.includes('batsman') ? 'Who will be the top batsman in this match?' :
+                questionId.includes('bowler') ? 'Who will be the top bowler in this match?' :
+                questionId.includes('highest') ? 'Will the match total exceed 350 runs?' :
+                questionId.includes('moreSixes') || questionId.includes('more-sixes') ? 'Which team will hit more sixes?' :
+                questionId.includes('totalSixes') || questionId.includes('total-sixes') ? 'How many sixes will be hit in this match?' :
+                questionId.includes('winner') ? 'Which team will win this match?' :
+                `Unknown Question (${questionId})`;
+            }
             
             questionPoints.push({
               questionId: prediction.questionId,
-              questionText: question?.text || "Unknown Question",
+              questionText: questionText || `Unknown Question (${prediction.questionId})`,
               points: prediction.pointsEarned || 0,
               isCorrect: prediction.isCorrect || false,
               answer: prediction.answer || ''
@@ -264,10 +300,31 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         userPoints[userId] += prediction.pointsEarned || 0;
         userStats[userId].correct += 1;
         
-        const question = questions.get(prediction.questionId);
+        // Try to get question by ID first
+        let question = questions.get(prediction.questionId);
+        
+        // If not found, try lowercase
+        if (!question && prediction.questionId) {
+          question = questions.get(prediction.questionId.toLowerCase());
+        }
+        
+        // Determine question text with fallbacks for specific question types
+        let questionText = question?.text;
+        if (!questionText && prediction.questionId) {
+          const questionId = prediction.questionId;
+          questionText = 
+            questionId.includes('batsman') ? 'Who will be the top batsman in this match?' :
+            questionId.includes('bowler') ? 'Who will be the top bowler in this match?' :
+            questionId.includes('highest') ? 'Will the match total exceed 350 runs?' :
+            questionId.includes('moreSixes') || questionId.includes('more-sixes') ? 'Which team will hit more sixes?' :
+            questionId.includes('totalSixes') || questionId.includes('total-sixes') ? 'How many sixes will be hit in this match?' :
+            questionId.includes('winner') ? 'Which team will win this match?' :
+            `Unknown Question (${questionId})`;
+        }
+        
         userQuestionPoints[userId].push({
           questionId: prediction.questionId,
-          questionText: question?.text || "Unknown Question",
+          questionText: questionText || `Unknown Question (${prediction.questionId})`,
           points: prediction.pointsEarned || 0,
           isCorrect: true,
           answer: prediction.answer || ''
@@ -292,13 +349,34 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         
         // Add incorrect predictions to the breakdown
         if (!prediction.isCorrect && userQuestionPoints[userId]) {
-          const question = questions.get(prediction.questionId);
+          // Try to get question by ID first
+          let question = questions.get(prediction.questionId);
+          
+          // If not found, try lowercase
+          if (!question && prediction.questionId) {
+            question = questions.get(prediction.questionId.toLowerCase());
+          }
+          
+          // Determine question text with fallbacks for specific question types
+          let questionText = question?.text;
+          if (!questionText && prediction.questionId) {
+            const questionId = prediction.questionId;
+            questionText = 
+              questionId.includes('batsman') ? 'Who will be the top batsman in this match?' :
+              questionId.includes('bowler') ? 'Who will be the top bowler in this match?' :
+              questionId.includes('highest') ? 'Will the match total exceed 350 runs?' :
+              questionId.includes('moreSixes') || questionId.includes('more-sixes') ? 'Which team will hit more sixes?' :
+              questionId.includes('totalSixes') || questionId.includes('total-sixes') ? 'How many sixes will be hit in this match?' :
+              questionId.includes('winner') ? 'Which team will win this match?' :
+              `Unknown Question (${questionId})`;
+          }
+          
           // Only add if not already in the array
           const exists = userQuestionPoints[userId].some(q => q.questionId === prediction.questionId);
           if (!exists) {
             userQuestionPoints[userId].push({
               questionId: prediction.questionId,
-              questionText: question?.text || "Unknown Question",
+              questionText: questionText || `Unknown Question (${prediction.questionId})`,
               points: 0,
               isCorrect: false,
               answer: prediction.answer || ''
@@ -355,75 +433,33 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
     }
   };
   
-  // Set up real-time listener for weekly leaderboard
-  const setupWeeklyLeaderboardListener = (): Unsubscribe => {
+  // Replace the season leaderboard with global leaderboard
+  const setupGlobalLeaderboardListener = (): Unsubscribe => {
     try {
-      const usersRef = collection(db, "users");
-      const usersQuery = query(
-        usersRef,
-        orderBy("weeklyPoints", "desc"),
-        firestoreLimit(limit)
-      );
-      
-      return onSnapshot(usersQuery, (snapshot) => {
-        const entries: EnhancedLeaderboardEntry[] = [];
-        
-        snapshot.forEach((docSnapshot) => {
-          const userData = docSnapshot.data();
-          const position = entries.length + 1;
-          
-          entries.push({
-            position,
-            userId: userData.uid,
-            userName: userData.displayName || "Anonymous User",
-            userAvatar: userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'A')}&background=random`,
-            points: userData.weeklyPoints || 0,
-            correctPredictions: userData.correctPredictions || 0,
-            totalPredictions: userData.totalPredictions || 0,
-            accuracy: userData.weeklyAccuracy || 0,
-            streak: userData.currentStreak || 0,
-          trend: "neutral"
-        });
-      });
-      
-        setLeaderboard(entries);
-        setLoading(false);
-      });
-    } catch (error) {
-      console.error("Error setting up weekly leaderboard listener:", error);
-      setLoading(false);
-      // Return empty unsubscribe since we couldn't set up a listener
-      return () => {};
-    }
-  };
-  
-  // Set up real-time listener for season leaderboard
-  const setupSeasonLeaderboardListener = (): Unsubscribe => {
-    try {
-      const usersRef = collection(db, "users");
-      const usersQuery = query(
-        usersRef,
+      const globalLeaderboardRef = collection(db, COLLECTIONS.GLOBAL_LEADERBOARD);
+      const leaderboardQuery = query(
+        globalLeaderboardRef,
         orderBy("totalPoints", "desc"),
         firestoreLimit(limit)
       );
       
-      return onSnapshot(usersQuery, (snapshot) => {
+      return onSnapshot(leaderboardQuery, (snapshot) => {
         const entries: EnhancedLeaderboardEntry[] = [];
         
+        let position = 1;
         snapshot.forEach((docSnapshot) => {
           const userData = docSnapshot.data();
-          const position = entries.length + 1;
           
           entries.push({
-            position,
-            userId: userData.uid,
+            position: position++,
+            userId: userData.userId,
             userName: userData.displayName || "Anonymous User",
             userAvatar: userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'A')}&background=random`,
             points: userData.totalPoints || 0,
             correctPredictions: userData.correctPredictions || 0,
             totalPredictions: userData.totalPredictions || 0,
-            accuracy: userData.overallAccuracy || 0,
-            streak: userData.longestStreak || 0,
+            accuracy: userData.accuracy || 0,
+            streak: 0, // Not tracked in global leaderboard
           trend: "neutral"
         });
       });
@@ -432,10 +468,47 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         setLoading(false);
       });
     } catch (error) {
-      console.error("Error setting up season leaderboard listener:", error);
+      console.error("Error setting up global leaderboard listener:", error);
       setLoading(false);
-      // Return empty unsubscribe since we couldn't set up a listener
-      return () => {};
+      
+      // Fallback to users collection if global leaderboard fails
+    try {
+      const usersRef = collection(db, "users");
+        const usersQuery = query(
+          usersRef,
+          orderBy("totalPoints", "desc"),
+          firestoreLimit(limit)
+        );
+        
+        return onSnapshot(usersQuery, (snapshot) => {
+          const entries: EnhancedLeaderboardEntry[] = [];
+          
+          snapshot.forEach((docSnapshot) => {
+            const userData = docSnapshot.data();
+            const position = entries.length + 1;
+            
+            entries.push({
+              position,
+              userId: userData.uid,
+              userName: userData.displayName || "Anonymous User",
+              userAvatar: userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'A')}&background=random`,
+              points: userData.totalPoints || 0,
+              correctPredictions: userData.correctPredictions || 0,
+              totalPredictions: userData.totalPredictions || 0,
+              accuracy: userData.overallAccuracy || 0,
+              streak: userData.longestStreak || 0,
+          trend: "neutral"
+        });
+      });
+      
+          setLeaderboard(entries);
+          setLoading(false);
+        });
+      } catch (fallbackError) {
+        console.error("Error setting up fallback leaderboard listener:", fallbackError);
+        setLoading(false);
+        return () => {}; // Return empty unsubscribe function
+      }
     }
   };
   
@@ -458,18 +531,13 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-2 mb-4">
             {matchId && <TabsTrigger value="match">This Match</TabsTrigger>}
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="season">Season</TabsTrigger>
+            <TabsTrigger value="season">Global</TabsTrigger>
           </TabsList>
           
           <TabsContent value="match" className="space-y-4">
             {renderMatchLeaderboard()}
-          </TabsContent>
-          
-          <TabsContent value="weekly" className="space-y-4">
-            {renderStandardLeaderboard()}
           </TabsContent>
           
           <TabsContent value="season" className="space-y-4">
@@ -594,7 +662,15 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                               <Badge className="bg-red-50 text-red-700 border-red-200">Incorrect</Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-right font-semibold">{qp.points}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {qp.points > 0 ? (
+                              <span className="text-green-600">+{qp.points}</span>
+                            ) : qp.points < 0 ? (
+                              <span className="text-red-600">{qp.points}</span>
+                            ) : (
+                              <span className="text-gray-500">0</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                       <TableRow>

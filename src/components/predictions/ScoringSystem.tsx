@@ -134,6 +134,43 @@ export default function ScoringSystem() {
 
         <Separator />
 
+        <div>
+          <h3 className="font-semibold text-lg mb-2">Negative Points</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium">Incorrect Predictions</p>
+                <p className="text-sm text-gray-500">Points deducted for wrong answers</p>
+              </div>
+              <Badge variant="outline" className="bg-red-50 text-red-700">Varies by question</Badge>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 mt-0.5">Match Winner</Badge>
+                <span className="text-red-600">-3 points</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 mt-0.5">Top Batsman/Bowler</Badge>
+                <span className="text-red-600">-5 points</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 mt-0.5">Team with More Sixes</Badge>
+                <span className="text-red-600">-3 points</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 mt-0.5">Total Sixes</Badge>
+                <span className="text-red-600">-5 points</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 mt-0.5">Highest Total</Badge>
+                <span className="text-red-600">-3 points</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         <div className="bg-blue-50 p-4 rounded-md">
           <h3 className="font-semibold text-blue-800 mb-2">Total Possible Points</h3>
           <div className="flex flex-col gap-1">

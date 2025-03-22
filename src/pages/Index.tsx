@@ -153,10 +153,7 @@ const Index = () => {
                 <Button asChild size="lg" className="bg-white text-ipl-blue hover:bg-white/90 w-full sm:w-auto">
                   <Link to="/matches">Make Predictions</Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto">
-                  <Link to="/example-match">Try Prediction System</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto">
+                <Button asChild size="lg" variant="outline" className="bg-white text-ipl-blue hover:bg-white/90 w-full sm:w-auto">
                   <Link to="/leaderboard">View Leaderboard</Link>
                 </Button>
               </div>

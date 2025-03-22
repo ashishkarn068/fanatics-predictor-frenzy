@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, getDocs, deleteDoc, writeBatch, query, where, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, writeBatch, query, where, getDoc, doc, updateDoc } from 'firebase/firestore';
 import { seedQuestionsIfNeeded } from './firestore-collections';
 
 /**
@@ -51,6 +51,7 @@ export const forceRefreshQuestions = async (): Promise<boolean> => {
         text: 'Which team will hit more sixes?',
         type: 'moreSixes',
         points: 5,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -62,6 +63,65 @@ export const forceRefreshQuestions = async (): Promise<boolean> => {
       moreSixesSnapshot.forEach(doc => {
         console.log('  - ID:', doc.id);
         console.log('  - Data:', JSON.stringify(doc.data()));
+      });
+    }
+    
+    // Verify the totalSixes question specifically
+    const totalSixesQuery = query(
+      questionsCollection,
+      where('type', '==', 'totalSixes')
+    );
+    
+    const totalSixesSnapshot = await getDocs(totalSixesQuery);
+    
+    if (totalSixesSnapshot.empty) {
+      console.error('ERROR: totalSixes question was not created!');
+      
+      // Manually create it
+      const totalSixesRef = doc(questionsCollection, 'total-sixes');
+      const manualBatch = writeBatch(db);
+      manualBatch.set(totalSixesRef, {
+        text: 'How many sixes will be hit in this match?',
+        type: 'totalSixes',
+        options: [
+          { id: 'range1', value: '12-17', label: '12-17 sixes' },
+          { id: 'range2', value: '17-22', label: '17-22 sixes' },
+          { id: 'range3', value: '22-37', label: '22-37 sixes' },
+          { id: 'range4', value: '37-42', label: '37-42 sixes' }
+        ],
+        points: 15,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      await manualBatch.commit();
+      console.log('Manually created totalSixes question with options');
+    } else {
+      console.log('totalSixes question found successfully:');
+      totalSixesSnapshot.forEach(doc => {
+        console.log('  - ID:', doc.id);
+        console.log('  - Data:', JSON.stringify(doc.data()));
+        
+        // Check if it has options
+        const data = doc.data();
+        if (!data.options || !Array.isArray(data.options) || data.options.length === 0) {
+          console.log('  - totalSixes question missing options, adding them now');
+          
+          // Add options to existing question
+          const totalSixesRef = doc.ref;
+          updateDoc(totalSixesRef, {
+            options: [
+              { id: 'range1', value: '12-17', label: '12-17 sixes' },
+              { id: 'range2', value: '17-22', label: '17-22 sixes' },
+              { id: 'range3', value: '22-37', label: '22-37 sixes' },
+              { id: 'range4', value: '37-42', label: '37-42 sixes' }
+            ],
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          console.log('  - totalSixes options:', JSON.stringify(data.options));
+        }
       });
     }
     

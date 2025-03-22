@@ -38,3 +38,6 @@ serviceAccountKey.json
 # Build artifacts
 build/
 out/
+
+# Zip files
+*.zip

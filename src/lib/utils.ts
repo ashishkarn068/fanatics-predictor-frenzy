@@ -142,6 +142,40 @@ export function getTimeUntilMatch(matchDate: string): string {
   return `${diffMinutes}m until match`;
 }
 
+/**
+ * Checks if a match is within the 24-hour prediction window
+ * Returns true if the match is less than 24 hours away, false otherwise
+ * This is a client-side validation only, security rules should enforce this on the server
+ */
+export function isMatchWithinPredictionWindow(matchDate: string): boolean {
+  // Convert both dates to UTC timestamps to ensure consistent comparison
+  const now = new Date();
+  const match = new Date(matchDate);
+  
+  // Calculate the difference in milliseconds
+  const timeDifference = match.getTime() - now.getTime();
+  
+  // Convert to hours (1000 ms * 60 s * 60 min)
+  const hoursDifference = timeDifference / (1000 * 60 * 60);
+  
+  // Return true if match is less than 24 hours away and in the future
+  return hoursDifference > 0 && hoursDifference <= 24;
+}
+
+/**
+ * Enhanced version that checks if predictions are allowed for a match
+ * Takes into account both time window and admin override
+ */
+export function isPredictionAllowed(match: any): boolean {
+  // Check if admin has enabled predictions for this match
+  if (match.isPredictionEnabledByAdmin === true && match.status === 'upcoming') {
+    return true;
+  }
+  
+  // Otherwise, fall back to time-based check
+  return match.status === 'upcoming' && isMatchWithinPredictionWindow(match.date);
+}
+
 export function isPredictionDeadlinePassed(deadline: string): boolean {
   const now = new Date();
   const deadlineDate = new Date(deadline);

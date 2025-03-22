@@ -72,14 +72,11 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
           return;
         }
 
-        // Now fetch team details from the teams collection, not COLLECTIONS.TEAMS
-        const team1Ref = doc(db, "teams", normalizedTeam1Id);
-        const team2Ref = doc(db, "teams", normalizedTeam2Id);
-        
-        console.log('Firestore team references:', { 
-          team1Path: `teams/${normalizedTeam1Id}`,
-          team2Path: `teams/${normalizedTeam2Id}`
-        });
+        // First, try to fetch teams from the "teams" collection (this is the primary source)
+        console.log('Attempting to fetch team data from "teams" collection first');
+        const teamsCollection = collection(db, "teams");
+        const team1Ref = doc(teamsCollection, normalizedTeam1Id);
+        const team2Ref = doc(teamsCollection, normalizedTeam2Id);
         
         // Fetch both teams in parallel
         const [team1Doc, team2Doc] = await Promise.all([
@@ -87,10 +84,13 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
           getDoc(team2Ref)
         ]);
         
-        console.log('Team documents exist:', { 
+        console.log('Team documents exist in teams collection:', { 
           team1Exists: team1Doc.exists(), 
           team2Exists: team2Doc.exists() 
         });
+        
+        let team1PlayersLoaded = false;
+        let team2PlayersLoaded = false;
         
         // Process team 1
         if (team1Doc.exists()) {
@@ -105,12 +105,40 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
             squad: teamData.squad || {}
           });
           
+          // Process squad from teams collection
           const processedSquad = processSquad(teamData, team1Identifier);
           if (processedSquad.length > 0) {
             setTeam1Players(processedSquad);
+            team1PlayersLoaded = true;
+            console.log(`Loaded ${processedSquad.length} players for ${team1Identifier} from teams collection`);
           }
         } else {
-          console.log(`Team 1 with ID ${team1Identifier} not found in Firestore`);
+          console.log(`Team 1 with ID ${team1Identifier} not found in teams collection`);
+          
+          // Try to load from squads collection as fallback
+          const squad1Ref = doc(db, COLLECTIONS.SQUADS, normalizedTeam1Id);
+          const squad1Doc = await getDoc(squad1Ref);
+          
+          if (squad1Doc.exists()) {
+            console.log(`Found team 1 in squads collection`);
+            const squadData = squad1Doc.data();
+            if (squadData.squad && Array.isArray(squadData.squad) && squadData.squad.length > 0) {
+              const processedSquad = squadData.squad.map((player: any, index: number) => {
+                return {
+                  id: `${normalizedTeam1Id}-player-${index}`,
+                  name: player.name,
+                  teamId: team1Identifier,
+                  role: convertPlayerRole(player.role),
+                  image: ''
+                };
+              });
+              
+              setTeam1Players(processedSquad);
+              team1PlayersLoaded = true;
+              console.log(`Loaded ${processedSquad.length} players for ${team1Identifier} from squads collection`);
+            }
+          }
+          
           setTeam1({
             id: team1Identifier,
             name: team1Identifier,
@@ -133,12 +161,40 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
             squad: teamData.squad || {}
           });
           
+          // Process squad from teams collection
           const processedSquad = processSquad(teamData, team2Identifier);
           if (processedSquad.length > 0) {
             setTeam2Players(processedSquad);
+            team2PlayersLoaded = true;
+            console.log(`Loaded ${processedSquad.length} players for ${team2Identifier} from teams collection`);
           }
         } else {
-          console.log(`Team 2 with ID ${team2Identifier} not found in Firestore`);
+          console.log(`Team 2 with ID ${team2Identifier} not found in teams collection`);
+          
+          // Try to load from squads collection as fallback
+          const squad2Ref = doc(db, COLLECTIONS.SQUADS, normalizedTeam2Id);
+          const squad2Doc = await getDoc(squad2Ref);
+          
+          if (squad2Doc.exists()) {
+            console.log(`Found team 2 in squads collection`);
+            const squadData = squad2Doc.data();
+            if (squadData.squad && Array.isArray(squadData.squad) && squadData.squad.length > 0) {
+              const processedSquad = squadData.squad.map((player: any, index: number) => {
+                return {
+                  id: `${normalizedTeam2Id}-player-${index}`,
+                  name: player.name,
+                  teamId: team2Identifier,
+                  role: convertPlayerRole(player.role),
+                  image: ''
+                };
+              });
+              
+              setTeam2Players(processedSquad);
+              team2PlayersLoaded = true;
+              console.log(`Loaded ${processedSquad.length} players for ${team2Identifier} from squads collection`);
+            }
+          }
+          
           setTeam2({
             id: team2Identifier,
             name: team2Identifier,
@@ -147,11 +203,23 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
             secondaryColor: '#FECACA',
           });
         }
+        
+        // Use provided squad1 and squad2 as final fallback if no players were loaded
+        if (!team1PlayersLoaded && squad1.length > 0) {
+          console.log(`Using provided squad1 as fallback for ${team1Identifier} (${squad1.length} players)`);
+          setTeam1Players(squad1);
+        }
+        
+        if (!team2PlayersLoaded && squad2.length > 0) {
+          console.log(`Using provided squad2 as fallback for ${team2Identifier} (${squad2.length} players)`);
+          setTeam2Players(squad2);
+        }
+        
       } catch (err) {
         console.error('Error fetching match data:', err);
         setError('Failed to load prediction data');
       } finally {
-        console.log('Processing squad data from team documents...');
+        console.log('Processing squad data completed');
         setLoading(false);
       }
     };
@@ -163,32 +231,57 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
         return [];
       }
       
-      // Log the keys of the squad to understand its structure
-      console.log(`Squad keys for ${teamData.name || teamIdentifier}:`, Object.keys(teamData.squad));
-      console.log(`Squad data sample for ${teamData.name || teamIdentifier}:`, Object.values(teamData.squad)[0]);
+      // Log basic squad details
+      console.log(`Processing squad for team ${teamData.name || teamIdentifier}`);
+      console.log(`Squad has ${Object.keys(teamData.squad).length} players`);
       
-      // Map numeric keys (0, 1, 2, etc.) to player objects
-      const players: Player[] = Object.values(teamData.squad).map((playerData, index) => {
-        // Create consistent player ID using normalized team ID
-        const normalizedTeamId = teamIdentifier.toLowerCase().replace(/\s+/g, '');
-        const normalizedPlayerName = playerData.name.toLowerCase().replace(/\s+/g, '-');
-        const playerId = `${normalizedTeamId}-${normalizedPlayerName}`;
+      try {
+        // Create a normalized set of current player names to detect outdated entries
+        const knownOutdatedPlayers = ['Shreyas Iyer']; // Add any known outdated players here
         
-        const playerRole = convertPlayerRole(playerData.role);
+        // First, map the raw squad data to player objects (similar to MatchResultUpdater)
+        const players: Player[] = Object.values(teamData.squad)
+          .map((playerData, index) => {
+            // Verify player is not in outdated list
+            if (knownOutdatedPlayers.includes(playerData.name)) {
+              console.warn(`⚠️ WARNING: Outdated player "${playerData.name}" found in ${teamData.name} squad - EXCLUDING`);
+              return null; // Will be filtered out
+            }
+            
+            // Generate a consistent ID for the player
+            const normalizedTeamId = teamIdentifier.toLowerCase().replace(/\s+/g, '');
+            const normalizedPlayerName = playerData.name.toLowerCase().replace(/\s+/g, '-');
+            const playerId = `${normalizedTeamId}-${normalizedPlayerName}`;
+            
+            // Convert role to standardized format
+            const playerRole = convertPlayerRole(playerData.role);
+            
+            // Create Player object
+            return {
+              id: playerId,
+              name: playerData.name,
+              teamId: teamIdentifier,
+              role: playerRole,
+              image: ''
+            };
+          })
+          .filter(Boolean) as Player[]; // Remove any null entries (outdated players)
         
-        console.log(`Processing player: ${playerData.name} with role: ${playerData.role} → ${playerRole}`);
+        console.log(`Successfully processed ${players.length} players for ${teamData.name || teamIdentifier}`);
         
-        return {
-          id: playerId,
-          name: playerData.name,
-          teamId: teamIdentifier,
-          role: playerRole,
-          image: ''
-        };
-      });
-      
-      console.log(`Processed ${players.length} players for team ${teamData.name || teamIdentifier}`);
-      return players;
+        // Log the first few players for debugging
+        if (players.length > 0) {
+          console.log(`Sample players for ${teamData.name || teamIdentifier}:`);
+          players.slice(0, 3).forEach((p, i) => 
+            console.log(`  ${i+1}. ${p.name} (${p.role}), ID: ${p.id}`)
+          );
+        }
+        
+        return players;
+      } catch (error) {
+        console.error(`Error processing squad for ${teamData.name || teamIdentifier}:`, error);
+        return [];
+      }
     };
 
     // Convert player role to standardized format
@@ -247,33 +340,14 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
   // Print summary of loaded teams and squads
   useEffect(() => {
     if (!loading) {
-      let team1Summary = 'Squad 1: No players found';
-      let team2Summary = 'Squad 2: No players found';
-      
-      if (team1Players.length > 0) {
-        team1Summary = `Team 1 squad processed: ${team1Players.length} players`;
-      } else if (squad1.length > 0) {
-        team1Summary = 'Team 1 squad processed: No players found in team document, using provided squad1';
-        setTeam1Players(squad1);
-      }
-      
-      if (team2Players.length > 0) {
-        team2Summary = `Team 2 squad processed: ${team2Players.length} players`;
-      } else if (squad2.length > 0) {
-        team2Summary = 'Team 2 squad processed: No players found in team document, using provided squad2';
-        setTeam2Players(squad2);
-      }
-      
-      console.log(team1Summary);
-      console.log(team2Summary);
-      console.log('Teams loaded for predictions:', {
+      console.log('Final team and player data loaded:', {
         team1: team1?.name,
         team2: team2?.name,
         team1SquadSize: team1Players.length,
         team2SquadSize: team2Players.length
       });
     }
-  }, [loading, team1, team2, team1Players, team2Players, squad1, squad2]);
+  }, [loading, team1, team2, team1Players, team2Players]);
 
   if (loading) {
     return (
@@ -340,7 +414,9 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
               logo: team2.logo || ''
             } : null
           }}
-          players={players}
+          // Passing an empty array for players since we now only use squad1 and squad2
+          // This ensures we don't inadvertently include outdated player data
+          players={[]}
           squad1={team1Players}
           squad2={team2Players}
           loading={loading}

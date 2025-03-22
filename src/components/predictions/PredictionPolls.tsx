@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { isMatchWithinPredictionWindow, isPredictionAllowed } from '@/lib/utils';
+import { Loader2 } from "lucide-react";
 
 interface PredictionPollsProps {
   match: Match;
@@ -27,6 +29,7 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
   const [topBowler, setTopBowler] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPredictionLocked, setIsPredictionLocked] = useState(false);
+  const [isWithinPredictionWindow, setIsWithinPredictionWindow] = useState(false);
   const [loadingPredictions, setLoadingPredictions] = useState(true);
   const [hasPredicted, setHasPredicted] = useState(false);
 
@@ -58,6 +61,9 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
     if (matchDate <= now || match.status === "completed") {
       setIsPredictionLocked(true);
     }
+    
+    // Check if match is within the 24-hour prediction window
+    setIsWithinPredictionWindow(isPredictionAllowed(match));
     
     // Fetch user's existing predictions for this match
     const fetchUserPredictions = async () => {
@@ -117,6 +123,15 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
       toast({
         title: "Predictions Locked",
         description: "You cannot make predictions after the match has started.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!isWithinPredictionWindow) {
+      toast({
+        title: "Predictions Not Open Yet",
+        description: "Predictions are only allowed within 24 hours of the match start time.",
         variant: "destructive",
       });
       return;
@@ -199,6 +214,9 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
     }
   };
 
+  // Add condition to disable inputs when outside prediction window
+  const isInputDisabled = isPredictionLocked || !user || hasPredicted || !isWithinPredictionWindow;
+
   if (loading || loadingPredictions) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -219,6 +237,13 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
               {predictions ? " Your predictions are displayed below." : ""}
             </p>
           </div>
+        ) : !isWithinPredictionWindow ? (
+          <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Predictions will open 24 hours before the match starts. 
+              Please check back later to submit your predictions.
+            </p>
+          </div>
         ) : hasPredicted ? (
           <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
             <p className="text-blue-800 dark:text-blue-200">
@@ -235,49 +260,45 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
           </div>
         ) : null}
         
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Match Winner</CardTitle>
-            <CardDescription>Who do you think will win this match?</CardDescription>
+            <CardDescription>Predict which team will win this match</CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup 
               value={winnerTeam} 
               onValueChange={setWinnerTeam}
-              disabled={isPredictionLocked || !user || hasPredicted}
-              className="flex flex-col space-y-3"
+              disabled={isInputDisabled}
+              className="space-y-3"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value={match.team1Id} id="team1" />
-                <Label htmlFor="team1">{team1}</Label>
+                <RadioGroupItem value={match.team1Id} id="winner-team1" />
+                <Label htmlFor="winner-team1">{team1}</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value={match.team2Id} id="team2" />
-                <Label htmlFor="team2">{team2}</Label>
+                <RadioGroupItem value={match.team2Id} id="winner-team2" />
+                <Label htmlFor="winner-team2">{team2}</Label>
               </div>
             </RadioGroup>
           </CardContent>
         </Card>
-      </div>
-      
-      <Separator />
-      
-      <div>
-        <Card>
+        
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Top Batsman</CardTitle>
-            <CardDescription>Who will score the most runs in this match?</CardDescription>
+            <CardDescription>Predict the player who will score the most runs</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="batsman">Select Batsman</Label>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="batsman-select">Select Batsman</Label>
                 <Select 
                   value={topBatsman} 
                   onValueChange={setTopBatsman}
-                  disabled={isPredictionLocked || !user || hasPredicted}
+                  disabled={isInputDisabled} 
                 >
-                  <SelectTrigger id="batsman">
+                  <SelectTrigger id="batsman-select">
                     <SelectValue placeholder="Select a batsman" />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +306,7 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
                     <SelectItem value="any-team2">Any {team2} Player</SelectItem>
                     
                     {/* Team 1 Batsmen */}
-                    <SelectItem value="team1-header" disabled className="font-bold text-primary">
+                    <SelectItem value="team1-batsmen-header" disabled className="font-bold text-primary">
                       {team1} Batsmen
                     </SelectItem>
                     {team1Players
@@ -298,7 +319,7 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
                     }
                     
                     {/* Team 2 Batsmen */}
-                    <SelectItem value="team2-header" disabled className="font-bold text-primary">
+                    <SelectItem value="team2-batsmen-header" disabled className="font-bold text-primary">
                       {team2} Batsmen
                     </SelectItem>
                     {team2Players
@@ -315,24 +336,22 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
             </div>
           </CardContent>
         </Card>
-      </div>
-      
-      <div>
-        <Card>
+        
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Top Bowler</CardTitle>
-            <CardDescription>Who will take the most wickets in this match?</CardDescription>
+            <CardDescription>Predict the player who will take the most wickets</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="bowler">Select Bowler</Label>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bowler-select">Select Bowler</Label>
                 <Select 
                   value={topBowler} 
                   onValueChange={setTopBowler}
-                  disabled={isPredictionLocked || !user || hasPredicted}
+                  disabled={isInputDisabled} 
                 >
-                  <SelectTrigger id="bowler">
+                  <SelectTrigger id="bowler-select">
                     <SelectValue placeholder="Select a bowler" />
                   </SelectTrigger>
                   <SelectContent>
@@ -372,15 +391,21 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
         </Card>
       </div>
       
-      {!isPredictionLocked && user && !hasPredicted && (
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !winnerTeam}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Predictions"}
-          </Button>
-        </div>
+      {!isPredictionLocked && isWithinPredictionWindow && !hasPredicted && user && (
+        <Button 
+          onClick={handleSubmit}
+          className="w-full" 
+          disabled={isSubmitting || !winnerTeam || (!topBatsman && !topBowler)}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            'Submit Predictions'
+          )}
+        </Button>
       )}
       
       {predictions && (

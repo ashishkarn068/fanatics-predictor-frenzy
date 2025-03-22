@@ -13,6 +13,8 @@ import SetAdminUser from '@/components/admin/SetAdminUser';
 import UserManagement from '@/components/admin/UserManagement';
 import LoggingControl from '@/components/admin/LoggingControl';
 import GlobalLeaderboardReset from '@/components/admin/GlobalLeaderboardReset';
+import { PredictionControls } from '@/components/admin/PredictionControls';
+import QuestionManagement from '@/components/admin/QuestionManagement';
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { isUserAdmin, setUserAsAdmin } from "@/utils/admin-auth";
@@ -164,7 +166,10 @@ const AdminPage = () => {
               
               <TabsContent value="predictions">
                 <h2 className="text-xl font-semibold mb-4">Prediction Management</h2>
-                <p className="text-gray-500">Prediction management features coming soon...</p>
+                <div className="grid grid-cols-1 gap-6">
+                  <QuestionManagement />
+                  <PredictionControls />
+                </div>
               </TabsContent>
               
               <TabsContent value="users">

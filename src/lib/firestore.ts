@@ -96,6 +96,7 @@ export interface Question {
   text: string;
   type: 'winner' | 'topBatsman' | 'topBowler' | 'custom';
   points: number;
+  negativePoints?: number; // Points deducted for wrong answers
   options?: { id: string; value: string; label: string }[];
   createdAt?: string | Timestamp;
   updatedAt?: string | Timestamp;

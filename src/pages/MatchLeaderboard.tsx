@@ -42,6 +42,7 @@ interface Question {
   text: string;
   type: string;
   points: number;
+  negativePoints?: number;
 }
 
 interface MatchData {
@@ -122,6 +123,20 @@ const MatchLeaderboard = () => {
         
         console.log(`Loaded ${questionsList.length} questions:`, questionsList.map(q => q.id).join(', '));
         setQuestions(questionsList);
+        
+        // Create a map of question types to question text for easier lookup
+        const questionMap = new Map<string, string>();
+        questionsList.forEach(q => {
+          // Map both by ID and by type
+          questionMap.set(q.id, q.text);
+          if (q.type) {
+            questionMap.set(q.type, q.text);
+            // Also map lowercase versions for case-insensitive matching
+            questionMap.set(q.type.toLowerCase(), q.text);
+          }
+        });
+        
+        console.log('Question map created with entries:', Array.from(questionMap.entries()).map(([k, v]) => `${k} -> ${v}`).join(', '));
         
         // Now fetch leaderboard data with the loaded questions
         const predictionsRef = collection(db, LIB_COLLECTIONS.PREDICTION_ANSWERS);
@@ -213,20 +228,26 @@ const MatchLeaderboard = () => {
           
           // Find the matching question
           const questionId = prediction.questionId;
-          const matchingQuestion = questionsList.find(q => 
-            q.id === questionId || 
-            q.type === questionId || 
-            q.id.toLowerCase() === questionId.toLowerCase()
-          );
           
-          const questionText = matchingQuestion 
-            ? matchingQuestion.text 
-            : questionId.includes('batsman') ? 'Top Batsman'
-            : questionId.includes('bowler') ? 'Top Bowler'
-            : questionId.includes('highest') ? 'Highest Total'
-            : questionId.includes('sixes') ? 'More Sixes'
-            : questionId.includes('winner') ? 'Match Winner'
-            : `Question ${questionId}`;
+          // First try to find the exact question text from our map
+          let questionText = questionMap.get(questionId);
+          
+          // If not found directly, try lowercase version
+          if (!questionText && questionId) {
+            questionText = questionMap.get(questionId.toLowerCase());
+          }
+          
+          // If still not found, use our fallbacks
+          if (!questionText) {
+            questionText = 
+              questionId?.includes('batsman') ? 'Who will be the top batsman in this match?' :
+              questionId?.includes('bowler') ? 'Who will be the top bowler in this match?' :
+              questionId?.includes('highest') ? 'Will the match total exceed 350 runs?' :
+              questionId?.includes('moreSixes') || questionId?.includes('more-sixes') ? 'Which team will hit more sixes?' :
+              questionId?.includes('totalSixes') || questionId?.includes('total-sixes') ? 'How many sixes will be hit in this match?' :
+              questionId?.includes('winner') ? 'Which team will win this match?' :
+              `Unknown Question (${questionId})`;
+          }
           
           // Check if this prediction has been evaluated
           if (prediction.isCorrect === true) {
@@ -243,7 +264,7 @@ const MatchLeaderboard = () => {
           // Add question point with all the details
           entry.questionsPoints.push({
             questionId: prediction.questionId,
-            questionText: questionText,
+            questionText: questionText || `Unknown Question (${questionId})`,
             points: prediction.pointsEarned || 0,
             isCorrect: prediction.isCorrect,
             answer: prediction.answer || 'No answer'
@@ -673,6 +694,8 @@ const MatchLeaderboard = () => {
                                             <td className="p-3 text-right w-1/12">
                                               {qp.points > 0 ? (
                                                 <span className="text-green-600 font-medium">+{qp.points}</span>
+                                              ) : qp.points < 0 ? (
+                                                <span className="text-red-500 font-medium">{qp.points}</span>
                                               ) : qp.isCorrect === false ? (
                                                 <span className="text-red-500 font-medium">0</span>
                                               ) : (

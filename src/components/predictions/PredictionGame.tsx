@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { forceRefreshQuestions } from '@/utils/refresh-questions';
 import { RefreshCw } from "lucide-react";
 import { standardizePlayerName } from '@/utils/firestore-collections';
+import { isMatchWithinPredictionWindow, isPredictionAllowed } from '@/lib/utils';
 
 interface PredictionGameProps {
   match: Match;
@@ -53,6 +54,7 @@ export default function PredictionGame({
   const [userAnswers, setUserAnswers] = useState<PredictionAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPredictionLocked, setIsPredictionLocked] = useState(false);
+  const [isWithinPredictionWindow, setIsWithinPredictionWindow] = useState(false);
   const [hasPredicted, setHasPredicted] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -61,153 +63,64 @@ export default function PredictionGame({
   const team1 = teams.team1;
   const team2 = teams.team2;
 
-  // Filter players by team - combine both sources for maximum coverage
-  const team1Players = [...players.filter(p => p.teamId === match.team1Id), ...squad1].filter((p, i, self) =>
-    i === self.findIndex(t => t.id === p.id || t.name === p.name)
-  );
-  const team2Players = [...players.filter(p => p.teamId === match.team2Id), ...squad2].filter((p, i, self) =>
-    i === self.findIndex(t => t.id === p.id || t.name === p.name)
-  );
+  // Use ONLY squad1 and squad2 for team players - NO MORE combining with players array
+  const team1Players = squad1;
+  const team2Players = squad2;
 
-  // Improved player combining function
+  // Player combining function (now only using squad1 and squad2)
   const getAllPlayers = () => {
-    // Combine all player sources
+    // Combine team squads only (no general players array)
     const allPlayers = [...team1Players, ...team2Players];
     
-    // Remove duplicates based on ID or name
-    const uniquePlayers = allPlayers.filter((player, index, self) =>
-      index === self.findIndex(p => p.id === player.id || p.name === player.name)
-    );
+    console.log(`Combined players for selection: ${allPlayers.length} total players`);
+    console.log(`Team 1 players: ${team1Players.length}, Team 2 players: ${team2Players.length}`);
     
-    console.log(`Combined players for selection: ${uniquePlayers.length} total unique players`);
+    // Log player details for debugging
+    if (team1Players.length > 0) {
+      console.log(`Team 1 first player:`, team1Players[0]);
+    }
+    if (team2Players.length > 0) {
+      console.log(`Team 2 first player:`, team2Players[0]);
+    }
     
     // Count players with defined roles
-    const playersWithRoles = uniquePlayers.filter(p => p.role);
-    console.log(`Players with defined roles: ${playersWithRoles.length} out of ${uniquePlayers.length}`);
+    const playersWithRoles = allPlayers.filter(p => p.role);
+    console.log(`Players with defined roles: ${playersWithRoles.length} out of ${allPlayers.length}`);
     
     // Log all roles for debugging
-    const roles = uniquePlayers.map(p => p.role || 'undefined').sort();
+    const roles = allPlayers.map(p => p.role || 'undefined').sort();
     const uniqueRoles = [...new Set(roles)];
     console.log('Unique player roles found:', uniqueRoles);
     
-    return uniquePlayers;
+    return allPlayers;
   };
 
   // Improved batsmen filter to better handle role formats from Firestore
   const getBatsmen = () => {
     const allPlayers = getAllPlayers();
-    
-    console.log('Filtering for batsmen...');
-    const batsmen = allPlayers.filter(p => {
-      // If role is undefined, log and skip
-      if (!p.role) {
-        console.log(`Player ${p.name} has no defined role`);
-        return false;
-      }
-      
+    return allPlayers.filter(p => {
+      if (!p.role) return false;
       const role = p.role.toLowerCase();
-      
-      // Match exact role formats from Firestore
-      if (
-        role === 'batsman' || 
-        role === 'batter' ||
-        role.includes('batter (') ||
-        role.includes('batsman (') ||
-        role.includes('opener') ||
-        role.includes('captain') && !role.includes('bowler')
-      ) {
-        console.log(`Including batsman (direct match): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      // Check for general batting indicators
-      if (
-        role.includes('bat') || 
-        role.includes('order') || 
-        role.includes('wicket') || 
-        role.includes('keeper')
-      ) {
-        console.log(`Including batsman (keyword match): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      // Include all-rounders as they can bat
-      if (role.includes('all') || role.includes('rounder')) {
-        console.log(`Including batsman (all-rounder): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      console.log(`Excluding from batsmen: ${p.name} (${p.role})`);
-      return false;
+      return role.includes('bat') || 
+             role.includes('keeper') || 
+             role.includes('all') || 
+             role.includes('rounder') ||
+             role.includes('wicket');
     });
-    
-    console.log(`Found ${batsmen.length} batsmen out of ${allPlayers.length} total players`);
-    
-    // If no batsmen found, return all players as fallback
-    if (batsmen.length === 0) {
-      console.log('No batsmen found with matching roles, showing all players as fallback');
-      return allPlayers;
-    }
-    
-    return batsmen;
   };
 
   // Improved bowlers filter to better handle role formats from Firestore
   const getBowlers = () => {
     const allPlayers = getAllPlayers();
-    
-    console.log('Filtering for bowlers...');
-    const bowlers = allPlayers.filter(p => {
-      // If role is undefined, log and skip
-      if (!p.role) {
-        console.log(`Player ${p.name} has no defined role`);
-        return false;
-      }
-      
+    return allPlayers.filter(p => {
+      if (!p.role) return false;
       const role = p.role.toLowerCase();
-      
-      // Match exact role formats from Firestore
-      if (
-        role === 'bowler' || 
-        role.includes('bowler (') ||
-        role === 'spinner' ||
-        role === 'pacer' ||
-        role.includes('fast') ||
-        role.includes('medium')
-      ) {
-        console.log(`Including bowler (direct match): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      // Check for general bowling indicators
-      if (
-        role.includes('bowl') || 
-        role.includes('spin') ||
-        role.includes('pace')
-      ) {
-        console.log(`Including bowler (keyword match): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      // Include all-rounders as they can bowl
-      if (role.includes('all') || role.includes('rounder')) {
-        console.log(`Including bowler (all-rounder): ${p.name} (${p.role})`);
-        return true;
-      }
-      
-      console.log(`Excluding from bowlers: ${p.name} (${p.role})`);
-      return false;
+      return role.includes('bowl') || 
+             role.includes('all') || 
+             role.includes('rounder') ||
+             role.includes('spin') ||
+             role.includes('pace');
     });
-    
-    console.log(`Found ${bowlers.length} bowlers out of ${allPlayers.length} total players`);
-    
-    // If no bowlers found, return all players as fallback
-    if (bowlers.length === 0) {
-      console.log('No bowlers found with matching roles, showing all players as fallback');
-      return allPlayers;
-    }
-    
-    return bowlers;
   };
 
   // Log the input data
@@ -219,10 +132,12 @@ export default function PredictionGame({
     console.log('Teams object:', teams);
     console.log('Team1 from teams:', teams.team1);
     console.log('Team2 from teams:', teams.team2);
-    console.log('Squad 1:', squad1);
-    console.log('Squad 2:', squad2);
-    console.log('Players array:', players);
-  }, [match, squad1, squad2, players, teams]);
+    console.log('Squad 1 length:', squad1.length);
+    console.log('Squad 2 length:', squad2.length);
+    
+    // No longer using general players array:
+    // console.log('Players array:', players);
+  }, [match, squad1, squad2, teams]);
 
   // Log the filtered players
   useEffect(() => {
@@ -231,8 +146,9 @@ export default function PredictionGame({
     console.log('Team 2 batsmen count:', getBatsmen().filter(p => p.teamId === match.team2Id).length);
     console.log('Team 1 bowlers count:', getBowlers().filter(p => p.teamId === match.team1Id).length);
     console.log('Team 2 bowlers count:', getBowlers().filter(p => p.teamId === match.team2Id).length);
-  }, [match.team1Id, match.team2Id, team1Players, team2Players, squad1, squad2]);
+  }, [squad1, squad2, match.team1Id, match.team2Id]);
 
+  // Check if the user is authenticated
   useEffect(() => {
     // Set up auth state listener
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -243,91 +159,113 @@ export default function PredictionGame({
   }, []);
 
   useEffect(() => {
-    // Check if match has started or ended to lock predictions
-    const matchDate = new Date(match.date);
-    const now = new Date();
-    
-    if (matchDate <= now || match.status === "completed") {
-      setIsPredictionLocked(true);
-    }
-    
-    // Fetch questions and user's existing answers
-    const fetchQuestionsAndAnswers = async () => {
-      if (!match.id) {
-        setLoadingQuestions(false);
-        return;
+    if (match) {
+      // Update the isWithinPredictionWindow state using the new function
+      setIsWithinPredictionWindow(isPredictionAllowed(match));
+      
+      // Check if match has started or ended to lock predictions
+      const matchDate = new Date(match.date);
+      const now = new Date();
+      
+      if (matchDate <= now || match.status === "completed") {
+        setIsPredictionLocked(true);
       }
       
-      try {
-        setLoadingQuestions(true);
+      // Fetch questions and user's existing answers
+      const fetchQuestionsAndAnswers = async () => {
+        if (!match.id) {
+          setLoadingQuestions(false);
+          return;
+        }
         
-        // Fetch standard questions from Firestore
-        const questionsRef = collection(db, "questions");
-        const questionsSnapshot = await getDocs(questionsRef);
-        const fetchedQuestions: Question[] = [];
-        
-        console.log('-------- DEBUG: Fetching questions --------');
-        
-        // Create a map to track question types to avoid duplicates
-        const questionTypeMap: Record<string, boolean> = {};
-        
-        questionsSnapshot.forEach((doc) => {
-          const questionData = doc.data();
-          console.log(`Question ID: ${doc.id}`);
-          console.log(`Question Text: ${questionData.text}`);
-          console.log(`Question Type: ${questionData.type}`);
+        try {
+          setLoadingQuestions(true);
           
-          // Skip questions of the same type that we've already added
-          if (questionTypeMap[questionData.type]) {
-            console.log(`Skipping duplicate question type: ${questionData.type} (ID: ${doc.id})`);
-            return;
+          // Fetch standard questions from Firestore
+          const questionsRef = collection(db, "questions");
+          const questionsQuery = query(questionsRef, where("isActive", "==", true));
+          const questionsSnapshot = await getDocs(questionsQuery);
+          const fetchedQuestions: Question[] = [];
+          
+          console.log('-------- DEBUG: Fetching questions --------');
+          
+          // Create a map to track question types to avoid duplicates
+          const questionTypeMap: Record<string, boolean> = {};
+          
+          questionsSnapshot.forEach((doc) => {
+            const questionData = doc.data();
+            console.log(`Question ID: ${doc.id}`);
+            console.log(`Question Text: ${questionData.text}`);
+            console.log(`Question Type: ${questionData.type}`);
+            console.log(`Question Active: ${questionData.isActive}`);
+            
+            // Skip questions with empty text or missing text field
+            if (!questionData.text || questionData.text.trim() === '') {
+              console.log(`Skipping question with empty text: ${doc.id}`);
+              return;
+            }
+            
+            // Skip questions of the same type that we've already added
+            if (questionTypeMap[questionData.type]) {
+              console.log(`Skipping duplicate question type: ${questionData.type} (ID: ${doc.id})`);
+              return;
+            }
+            
+            // Mark this question type as seen
+            questionTypeMap[questionData.type] = true;
+            
+            // Build the question object and add it to our array
+            const question = { id: doc.id, ...questionData } as Question;
+            fetchedQuestions.push(question);
+            
+            // Special logging for moreSixes question
+            if (questionData.type === 'moreSixes') {
+              console.log('FOUND MORESIXES QUESTION:');
+              console.log('  - ID:', doc.id);
+              console.log('  - Text:', questionData.text);
+              console.log('  - Full data:', JSON.stringify(questionData));
+            }
+            
+            // Special logging for totalSixes question
+            if (questionData.type === 'totalSixes') {
+              console.log('FOUND TOTALSIXES QUESTION:');
+              console.log('  - ID:', doc.id);
+              console.log('  - Text:', questionData.text);
+              console.log('  - Options:', questionData.options ? JSON.stringify(questionData.options) : 'No options found');
+              console.log('  - Full data:', JSON.stringify(questionData));
+            }
+          });
+          
+          console.log('All Fetched questions:', fetchedQuestions);
+          console.log('moreSixes question:', fetchedQuestions.find(q => q.type === 'moreSixes'));
+          
+          // Log team information too
+          console.log('Teams data when loading questions:');
+          console.log('Match:', match);
+          console.log('Team1:', team1);
+          console.log('Team2:', team2);
+          
+          setQuestions(fetchedQuestions);
+          
+          // If user is logged in, set up real-time listener for answers
+          if (user) {
+            setupAnswersListener(match.id, fetchedQuestions);
+          } else {
+            setLoadingQuestions(false);
           }
-          
-          // Mark this question type as seen
-          questionTypeMap[questionData.type] = true;
-          
-          // Build the question object and add it to our array
-          const question = { id: doc.id, ...questionData } as Question;
-          fetchedQuestions.push(question);
-          
-          // Special logging for moreSixes question
-          if (questionData.type === 'moreSixes') {
-            console.log('FOUND MORESIXES QUESTION:');
-            console.log('  - ID:', doc.id);
-            console.log('  - Text:', questionData.text);
-            console.log('  - Full data:', JSON.stringify(questionData));
-          }
-        });
-        
-        console.log('All Fetched questions:', fetchedQuestions);
-        console.log('moreSixes question:', fetchedQuestions.find(q => q.type === 'moreSixes'));
-        
-        // Log team information too
-        console.log('Teams data when loading questions:');
-        console.log('Match:', match);
-        console.log('Team1:', team1);
-        console.log('Team2:', team2);
-        
-        setQuestions(fetchedQuestions);
-        
-        // If user is logged in, set up real-time listener for answers
-        if (user) {
-          setupAnswersListener(match.id, fetchedQuestions);
-        } else {
+        } catch (error) {
+          console.error("Error fetching questions and answers:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load prediction questions. Please try again.",
+            variant: "destructive",
+          });
           setLoadingQuestions(false);
         }
-      } catch (error) {
-        console.error("Error fetching questions and answers:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load prediction questions. Please try again.",
-          variant: "destructive",
-        });
-        setLoadingQuestions(false);
-      }
-    };
-    
-    fetchQuestionsAndAnswers();
+      };
+      
+      fetchQuestionsAndAnswers();
+    }
   }, [match, user, toast]);
 
   // Set up real-time listener for user's answers
@@ -484,6 +422,15 @@ export default function PredictionGame({
       toast({
         title: "Predictions Locked",
         description: "You cannot make predictions after the match has started.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!isWithinPredictionWindow) {
+      toast({
+        title: "Predictions Not Open Yet",
+        description: "Predictions are only allowed within 24 hours of the match start time.",
         variant: "destructive",
       });
       return;
@@ -647,6 +594,231 @@ export default function PredictionGame({
     }
   };
 
+  // Update this function to respect the isWithinPredictionWindow flag
+  const renderQuestionInput = (question: Question) => {
+    const isInputDisabled = isPredictionLocked || !user || hasPredicted || !isWithinPredictionWindow;
+    const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
+
+    if (question.type === 'topBatsman' || question.type === 'topBowler') {
+      // Get filtered players based on question type
+      const filteredPlayers = question.type === 'topBatsman' ? getBatsmen() : getBowlers();
+
+      return (
+        <Select 
+          value={answers[question.id] || userAnswer} 
+          onValueChange={(value) => handleAnswerChange(question.id, value)}
+          disabled={isInputDisabled}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a player" />
+          </SelectTrigger>
+          <SelectContent>
+            {/* Team 1 Players */}
+            <SelectItem value="team1-header" disabled className="font-bold text-primary">
+              {team1?.name || match.team1Id}
+            </SelectItem>
+            {filteredPlayers
+              .filter(p => p.teamId === match.team1Id)
+              .map(player => (
+                <SelectItem key={player.id} value={player.name}>
+                  {player.name}
+                </SelectItem>
+              ))
+            }
+            
+            {/* Team 2 Players */}
+            <SelectItem value="team2-header" disabled className="font-bold text-primary">
+              {team2?.name || match.team2Id}
+            </SelectItem>
+            {filteredPlayers
+              .filter(p => p.teamId === match.team2Id)
+              .map(player => (
+                <SelectItem key={player.id} value={player.name}>
+                  {player.name}
+                </SelectItem>
+              ))
+            }
+          </SelectContent>
+        </Select>
+      );
+    }
+    
+    if (question.type === 'winner') {
+      // ... existing winner radio group code but with modified disabled prop
+      return (
+        <RadioGroup 
+          value={answers[question.id] || userAnswer}
+          onValueChange={(value) => handleAnswerChange(question.id, value)}
+          disabled={isInputDisabled}
+          className="flex flex-col space-y-3"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
+            <Label htmlFor={`${question.id}-team1`}>
+              {team1?.name || match.team1Id}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
+            <Label htmlFor={`${question.id}-team2`}>
+              {team2?.name || match.team2Id}
+            </Label>
+          </div>
+        </RadioGroup>
+      );
+    } 
+    
+    if (question.type === 'totalSixes') {
+      console.log('Rendering totalSixes question:', question);
+      console.log('Has options?', !!question.options);
+      console.log('Options:', question.options);
+      
+      return (
+        <RadioGroup 
+          value={answers[question.id] || userAnswer}
+          onValueChange={(value) => handleAnswerChange(question.id, value)}
+          disabled={isInputDisabled}
+          className="flex flex-col space-y-3"
+        >
+          {/* Always use hardcoded options for totalSixes to ensure reliability */}
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="12-17" id={`${question.id}-range1`} />
+            <Label htmlFor={`${question.id}-range1`}>12-17 sixes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="17-22" id={`${question.id}-range2`} />
+            <Label htmlFor={`${question.id}-range2`}>17-22 sixes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="22-37" id={`${question.id}-range3`} />
+            <Label htmlFor={`${question.id}-range3`}>22-37 sixes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="37-42" id={`${question.id}-range4`} />
+            <Label htmlFor={`${question.id}-range4`}>37-42 sixes</Label>
+          </div>
+        </RadioGroup>
+      );
+    }
+    
+    if (['highestTotal', 'totalRuns', 'numberOfSixes'].includes(question.type as string)) {
+      // Special handling for highestTotal
+      if (question.type === 'highestTotal') {
+        return (
+          <RadioGroup 
+            value={answers[question.id] || userAnswer}
+            onValueChange={(value) => handleAnswerChange(question.id, value)}
+            disabled={isInputDisabled}
+            className="flex flex-col space-y-3"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="yes" id={`${question.id}-yes`} />
+              <Label htmlFor={`${question.id}-yes`}>
+                Yes, the total will exceed 350 runs
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id={`${question.id}-no`} />
+              <Label htmlFor={`${question.id}-no`}>
+                No, the total will be 350 runs or less
+              </Label>
+            </div>
+          </RadioGroup>
+        );
+      }
+      
+      // For other numeric inputs
+      return (
+        <Input
+          type="number"
+          min="0"
+          placeholder="Enter your prediction"
+          value={answers[question.id] || userAnswer}
+          onChange={(e) => validateNumericAnswer(question.id, e.target.value)}
+          disabled={isInputDisabled}
+          className="w-full"
+        />
+      );
+    }
+    
+    if (question.type === 'moreSixes') {
+      // Update moreSixes radio group
+      return (
+        <RadioGroup 
+          value={answers[question.id] || userAnswer}
+          onValueChange={(value) => handleAnswerChange(question.id, value)}
+          disabled={isInputDisabled}
+          className="flex flex-col space-y-3"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
+            <Label htmlFor={`${question.id}-team1`}>
+              {team1?.name || match.team1Id}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
+            <Label htmlFor={`${question.id}-team2`}>
+              {team2?.name || match.team2Id}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="tie" id={`${question.id}-tie`} />
+            <Label htmlFor={`${question.id}-tie`}>Tie (Equal Sixes)</Label>
+          </div>
+        </RadioGroup>
+      );
+    }
+    
+    if (question.options) {
+      // Update options radio group
+      return (
+        <RadioGroup 
+          value={answers[question.id] || userAnswer}
+          onValueChange={(value) => handleAnswerChange(question.id, value)}
+          disabled={isInputDisabled}
+          className="flex flex-col space-y-3"
+        >
+          {question.options.map(option => (
+            <div key={option.id} className="flex items-center space-x-2">
+              <RadioGroupItem value={option.value} id={`${question.id}-${option.id}`} />
+              <Label htmlFor={`${question.id}-${option.id}`}>{option.label}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      );
+    }
+    
+    return (
+      <div className="text-gray-500">No options available for this question.</div>
+    );
+  };
+
+  // Log squad players specifically
+  useEffect(() => {
+    console.log('Squad player details:');
+    
+    // Print detailed information about squad1 players
+    if (squad1.length > 0) {
+      console.log('Team 1 squad players:');
+      squad1.forEach((player, index) => {
+        console.log(`  ${index + 1}. ${player.name} (${player.role}), ID: ${player.id}, TeamID: ${player.teamId}`);
+      });
+    } else {
+      console.log('Team 1 has no squad players');
+    }
+    
+    // Print detailed information about squad2 players
+    if (squad2.length > 0) {
+      console.log('Team 2 squad players:');
+      squad2.forEach((player, index) => {
+        console.log(`  ${index + 1}. ${player.name} (${player.role}), ID: ${player.id}, TeamID: ${player.teamId}`);
+      });
+    } else {
+      console.log('Team 2 has no squad players');
+    }
+  }, [squad1, squad2]);
+
   if (loading || loadingQuestions) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -671,303 +843,80 @@ export default function PredictionGame({
 
   return (
     <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
+      <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
       
-      {/* Remove entire debug info section */}
-        
-        {isPredictionLocked ? (
-          <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
-              {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
-            </p>
-          </div>
+      {isPredictionLocked ? (
+        <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
+            {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
+          </p>
+        </div>
+      ) : !isWithinPredictionWindow ? (
+        <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            Predictions will open 24 hours before the match starts. 
+            Please check back later to submit your predictions.
+          </p>
+        </div>
       ) : hasPredicted ? (
         <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
           <p className="text-blue-800 dark:text-blue-200">
             You've already submitted predictions for this match. Your predictions are displayed below and cannot be modified.
-            </p>
-          </div>
-        ) : null}
-        
-        {!user ? (
-          <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
-            <p className="text-blue-800 dark:text-blue-200">
-              Please sign in to make predictions for this match.
-            </p>
-          </div>
-        ) : null}
-        
-        {/* Questions */}
-        <div className="space-y-6">
-          {questions.map(question => {
-            // Find user's answer for this question
-            const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
-            
-            return (
-              <Card key={question.id}>
-                <CardHeader>
-                  <CardTitle>{question.text}</CardTitle>
-                  <CardDescription>Worth {question.points} points</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {question.type === 'winner' ? (
-                    <RadioGroup 
-                      value={answers[question.id] || userAnswer}
-                      onValueChange={(value) => handleAnswerChange(question.id, value)}
-                    disabled={isPredictionLocked || !user || hasPredicted}
-                      className="flex flex-col space-y-3"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-                      <Label htmlFor={`${question.id}-team1`}>{team1?.name || match.team1Id}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-                      <Label htmlFor={`${question.id}-team2`}>{team2?.name || match.team2Id}</Label>
-                      </div>
-                    </RadioGroup>
-                  ) : question.type === 'topBatsman' ? (
-                    <div className="grid w-full items-center gap-4">
-                      <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor={`${question.id}-batsman`}>Select Batsman</Label>
-                        <Select 
-                          value={answers[question.id] || userAnswer}
-                          onValueChange={(value) => handleAnswerChange(question.id, value)}
-                        disabled={isPredictionLocked || !user || hasPredicted}
-                        >
-                          <SelectTrigger id={`${question.id}-batsman`}>
-                            <SelectValue placeholder="Select a batsman" />
-                          </SelectTrigger>
-                          <SelectContent>
-                          <SelectItem value="any-team1">Any {team1?.name || match.team1Id} Player</SelectItem>
-                          <SelectItem value="any-team2">Any {team2?.name || match.team2Id} Player</SelectItem>
-                            
-                            {/* Team 1 Batsmen */}
-                            <SelectItem value="team1-header" disabled className="font-bold text-primary">
-                            {team1?.name || match.team1Id} Batsmen
-                            </SelectItem>
-                          
-                          {/* Team 1 Batsmen List */}
-                          {(() => {
-                            // Get batsmen and filter by team
-                            const allBatsmen = getBatsmen();
-                            const team1Batsmen = allBatsmen.filter(p => p.teamId === match.team1Id);
-                            
-                            if (team1Batsmen.length === 0) {
-                              return (
-                                <SelectItem value="no-batsmen-team1" disabled>
-                                  No batsmen available
-                                </SelectItem>
-                              );
-                            }
-                            
-                            return team1Batsmen.map(player => (
-                              <SelectItem key={player.id} value={player.name}>
-                                {player.name} {player.role ? `(${player.role})` : '(Unknown role)'}
-                              </SelectItem>
-                            ));
-                          })()}
-                            
-                            {/* Team 2 Batsmen */}
-                            <SelectItem value="team2-header" disabled className="font-bold text-primary">
-                            {team2?.name || match.team2Id} Batsmen
-                            </SelectItem>
-                          
-                          {/* Team 2 Batsmen List */}
-                          {(() => {
-                            // Get batsmen and filter by team
-                            const allBatsmen = getBatsmen();
-                            const team2Batsmen = allBatsmen.filter(p => p.teamId === match.team2Id);
-                            
-                            if (team2Batsmen.length === 0) {
-                              return (
-                                <SelectItem value="no-batsmen-team2" disabled>
-                                  No batsmen available
-                                </SelectItem>
-                              );
-                            }
-                            
-                            return team2Batsmen.map(player => (
-                              <SelectItem key={player.id} value={player.name}>
-                                {player.name} {player.role ? `(${player.role})` : '(Unknown role)'}
-                              </SelectItem>
-                            ));
-                          })()}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ) : question.type === 'topBowler' ? (
-                    <div className="grid w-full items-center gap-4">
-                      <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor={`${question.id}-bowler`}>Select Bowler</Label>
-                        <Select 
-                          value={answers[question.id] || userAnswer}
-                          onValueChange={(value) => handleAnswerChange(question.id, value)}
-                        disabled={isPredictionLocked || !user || hasPredicted}
-                        >
-                          <SelectTrigger id={`${question.id}-bowler`}>
-                            <SelectValue placeholder="Select a bowler" />
-                          </SelectTrigger>
-                          <SelectContent>
-                          <SelectItem value="any-team1">Any {team1?.name || match.team1Id} Player</SelectItem>
-                          <SelectItem value="any-team2">Any {team2?.name || match.team2Id} Player</SelectItem>
-                          
-                          {/* Divider */}
-                          <div className="h-px bg-gray-200 my-2" />
-                          
-                          {/* Team 1 Bowlers */}
-                          <SelectItem value="team1-bowlers-header" disabled className="font-bold text-primary bg-gray-50">
-                            {team1?.name || match.team1Id} Bowlers
-                          </SelectItem>
-                          
-                          {/* Team 1 Bowlers List */}
-                          {(() => {
-                            // Get bowlers and filter by team
-                            const allBowlers = getBowlers();
-                            const team1Bowlers = allBowlers.filter(p => p.teamId === match.team1Id);
-                            
-                            if (team1Bowlers.length === 0) {
-                              return (
-                                <SelectItem value="no-bowlers-team1" disabled>
-                                  No bowlers available
-                                </SelectItem>
-                              );
-                            }
-                            
-                            return team1Bowlers.map(player => (
-                              <SelectItem key={player.id} value={player.name}>
-                                {player.name} {player.role ? `(${player.role})` : '(Unknown role)'}
-                              </SelectItem>
-                            ));
-                          })()}
-                          
-                          {/* Divider */}
-                          <div className="h-px bg-gray-200 my-2" />
-                            
-                            {/* Team 2 Bowlers */}
-                          <SelectItem value="team2-bowlers-header" disabled className="font-bold text-primary bg-gray-50">
-                            {team2?.name || match.team2Id} Bowlers
-                            </SelectItem>
-                          
-                          {/* Team 2 Bowlers List */}
-                          {(() => {
-                            // Get bowlers and filter by team
-                            const allBowlers = getBowlers();
-                            const team2Bowlers = allBowlers.filter(p => p.teamId === match.team2Id);
-                            
-                            if (team2Bowlers.length === 0) {
-                              return (
-                                <SelectItem value="no-bowlers-team2" disabled>
-                                  No bowlers available
-                                </SelectItem>
-                              );
-                            }
-                            
-                            return team2Bowlers.map(player => (
-                              <SelectItem key={player.id} value={player.name}>
-                                {player.name} {player.role ? `(${player.role})` : '(Unknown role)'}
-                              </SelectItem>
-                            ));
-                          })()}
-                          </SelectContent>
-                        </Select>
-                    </div>
-                    {team1Players.length === 0 && team2Players.length === 0 && (
-                      <div className="text-amber-500 text-sm mt-2">
-                        No players data available for this match. Please try again later.
-                      </div>
-                    )}
+          </p>
+        </div>
+      ) : null}
+      
+      {!user ? (
+        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
+          <p className="text-blue-800 dark:text-blue-200">
+            Please sign in to make predictions for this match.
+          </p>
+        </div>
+      ) : null}
+      
+      {/* Questions */}
+      <div className="space-y-6">
+        {questions.map(question => {
+          // Find user's answer for this question
+          const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
+          
+          return (
+            <Card key={question.id}>
+              <CardHeader>
+                <CardTitle>{question.text}</CardTitle>
+                <CardDescription>
+                  Worth {question.points} points
+                  {question.negativePoints ? ` | -${question.negativePoints} points for incorrect answers` : ''}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {renderQuestionInput(question)}
+                {question.type === 'totalSixes' && !userAnswer && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500">
+                      If no options appear above, please try refreshing the page.
+                    </p>
                   </div>
-                ) : question.type === 'highestTotal' ? (
-                  <div className="grid w-full items-center gap-4">
-                    <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor={`${question.id}-total`}>Enter your prediction (30-400 runs)</Label>
-                      <Input 
-                        id={`${question.id}-total`}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        placeholder="Enter a number between 30-400"
-                        value={answers[question.id] || userAnswer}
-                        onChange={(e) => validateNumericAnswer(question.id, e.target.value)}
-                        disabled={isPredictionLocked || !user || hasPredicted}
-                      />
-                      {validationErrors[question.id] && (
-                        <Alert variant="destructive" className="mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            {validationErrors[question.id]}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  </div>
-                ) : question.type === 'moreSixes' ? (
-                  <RadioGroup 
-                    value={answers[question.id] || userAnswer}
-                    onValueChange={(value) => handleAnswerChange(question.id, value)}
-                    disabled={isPredictionLocked || !user || hasPredicted}
-                    className="flex flex-col space-y-3"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-                      <Label htmlFor={`${question.id}-team1`}>
-                        {team1?.name || match.team1Id}
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-                      <Label htmlFor={`${question.id}-team2`}>
-                        {team2?.name || match.team2Id}
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="tie" id={`${question.id}-tie`} />
-                      <Label htmlFor={`${question.id}-tie`}>Tie (Equal Sixes)</Label>
-                    </div>
-                  </RadioGroup>
-                  ) : question.options ? (
-                    <RadioGroup 
-                      value={answers[question.id] || userAnswer}
-                      onValueChange={(value) => handleAnswerChange(question.id, value)}
-                    disabled={isPredictionLocked || !user || hasPredicted}
-                      className="flex flex-col space-y-3"
-                    >
-                      {question.options.map(option => (
-                        <div key={option.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.value} id={`${question.id}-${option.id}`} />
-                          <Label htmlFor={`${question.id}-${option.id}`}>{option.label}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  ) : (
-                    <div className="text-gray-500">No options available for this question.</div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
       
-      {!isPredictionLocked && user && !hasPredicted ? (
+      {!isPredictionLocked && isWithinPredictionWindow && !hasPredicted && user && (
         <div className="flex justify-end">
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting || Object.keys(answers).length === 0}
+            className="w-full sm:w-auto"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              'Submit Predictions'
-            )}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Submit Predictions
           </Button>
         </div>
-      ) : null}
+      )}
       
       {userAnswers.length > 0 && (
         <div className="bg-green-50 dark:bg-green-900 p-4 rounded-md">
@@ -984,40 +933,19 @@ export default function PredictionGame({
               
               let displayAnswer = answer.answer;
               
-              // Helper function to find a player by ID across all sources
-              const findPlayerById = (playerId: string) => {
-                return getAllPlayers().find(p => p.id === playerId) || 
-                       team1Players.find(p => p.id === playerId) || 
-                       team2Players.find(p => p.id === playerId) || 
-                       squad1.find(p => p.id === playerId) || 
-                       squad2.find(p => p.id === playerId) || 
-                       players.find(p => p.id === playerId);
-              };
-              
               // Format the answer for display
               if (question.type === 'winner') {
                 displayAnswer = answer.answer === match.team1Id 
                   ? (team1?.name || match.team1Id) 
                   : (team2?.name || match.team2Id);
-              } else if (question.type === 'topBatsman') {
+              } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
                 if (answer.answer === 'any-team1') {
                   displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
                 } else if (answer.answer === 'any-team2') {
                   displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
                 } else {
-                  // Just display the player name directly since we're now storing names not IDs
+                  // Just display the player name without team name
                   displayAnswer = answer.answer;
-                  console.log(`Showing prediction for top batsman: "${displayAnswer}"`);
-                }
-              } else if (question.type === 'topBowler') {
-                if (answer.answer === 'any-team1') {
-                  displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
-                } else if (answer.answer === 'any-team2') {
-                  displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
-                } else {
-                  // Just display the player name directly since we're now storing names not IDs
-                  displayAnswer = answer.answer;
-                  console.log(`Showing prediction for top bowler: "${displayAnswer}"`);
                 }
               } else if (question.type === 'highestTotal') {
                 displayAnswer = answer.answer ? `${answer.answer} runs` : 'No prediction';
@@ -1042,13 +970,34 @@ export default function PredictionGame({
                   <span className="text-sm">Your answer: {displayAnswer}</span>
                   {answer.isCorrect !== undefined && (
                     <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                      {answer.isCorrect ? `Correct (+${answer.pointsEarned || question.points} points)` : 'Incorrect'}
+                      {answer.isCorrect 
+                        ? `Correct (+${answer.pointsEarned || question.points} points)`
+                        : answer.pointsEarned < 0
+                          ? `Incorrect (${answer.pointsEarned} points)`
+                          : 'Incorrect'
+                      }
                     </span>
                   )}
                 </li>
               );
             })}
           </ul>
+        </div>
+      )}
+      
+      {!hasPredicted && user && (
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500 mb-2">Having trouble with the questions?</p>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleEmergencyRefresh}
+            disabled={isSubmitting}
+            className="text-xs"
+          >
+            <RefreshCw className="mr-1 h-3 w-3" /> 
+            Refresh Questions Database
+          </Button>
         </div>
       )}
     </div>

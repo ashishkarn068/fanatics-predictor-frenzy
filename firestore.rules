@@ -18,6 +18,25 @@ service cloud.firestore {
       return match.data.date < request.time || match.data.status != 'upcoming';
     }
     
+    function isMatchWithinPredictionWindow(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      
+      // Check if admin has enabled predictions for this match regardless of time
+      if (match.data.isPredictionEnabledByAdmin == true && match.data.status == 'upcoming') {
+        return true;
+      }
+      
+      let matchTime = match.data.date;
+      let currentTime = request.time;
+      
+      // Calculate the difference in milliseconds and convert to hours
+      let timeDifferenceMs = matchTime.toMillis() - currentTime.toMillis();
+      let timeDifferenceHours = timeDifferenceMs / (1000 * 60 * 60);
+      
+      // Return true if match is less than 24 hours away and hasn't started
+      return timeDifferenceHours > 0 && timeDifferenceHours <= 24 && match.data.status == 'upcoming';
+    }
+    
     // Allow anyone to read team data
     match /teams/{teamId} {
       allow read: if true;
@@ -41,9 +60,9 @@ service cloud.firestore {
     // Prediction Games - prevent modifications after first submission
     match /predictionGames/{gameId} {
       allow read: if true;
-      // Allow creation only if the match hasn't started
+      // Allow creation only if the match is within 24 hours and hasn't started
       allow create: if isAuthenticated() && 
-                     !isMatchStarted(request.resource.data.matchId);
+                     isMatchWithinPredictionWindow(request.resource.data.matchId);
       // Only allow admins to update
       allow update, delete: if isAuthenticated() && isAdmin();
     }
@@ -53,10 +72,10 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
                     request.auth.uid == resource.data.userId || isAdmin()
                   );
-      // Allow creation only if the match hasn't started and the user owns the answer
+      // Allow creation only if the match is within 24 hours, hasn't started, and the user owns the answer
       allow create: if isAuthenticated() && 
                      request.auth.uid == request.resource.data.userId &&
-                     !isMatchStarted(request.resource.data.matchId);
+                     isMatchWithinPredictionWindow(request.resource.data.matchId);
       // Only allow admins to update
       allow update, delete: if isAuthenticated() && isAdmin();
     }
