@@ -37,6 +37,25 @@ service cloud.firestore {
       return timeDifferenceHours > 0 && timeDifferenceHours <= 24 && match.data.status == 'upcoming';
     }
     
+    // Function to check if a match is within the reset window (more than 5 minutes before start)
+    function isWithinResetWindow(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      let matchTime = match.data.date;
+      let currentTime = request.time;
+      
+      // Match must not have started
+      if (match.data.status != 'upcoming' || matchTime <= currentTime) {
+        return false;
+      }
+      
+      // Calculate time difference in minutes
+      let timeDifferenceMs = matchTime.toMillis() - currentTime.toMillis();
+      let timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
+      
+      // Allow reset until 5 minutes before match starts
+      return timeDifferenceMinutes > 5;
+    }
+    
     // Allow anyone to read team data
     match /teams/{teamId} {
       allow read: if true;
@@ -63,8 +82,12 @@ service cloud.firestore {
       // Allow creation only if the match is within 24 hours and hasn't started
       allow create: if isAuthenticated() && 
                      isMatchWithinPredictionWindow(request.resource.data.matchId);
+      // Allow users to delete their own prediction games until 5 minutes before the match
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid &&
+                     isWithinResetWindow(resource.data.matchId);
       // Only allow admins to update
-      allow update, delete: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && isAdmin();
     }
     
     // Prediction Answers - prevent modifications after first submission
@@ -76,8 +99,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && 
                      request.auth.uid == request.resource.data.userId &&
                      isMatchWithinPredictionWindow(request.resource.data.matchId);
+      // Allow users to delete their own answers until 5 minutes before the match
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid &&
+                     isWithinResetWindow(resource.data.matchId);
       // Only allow admins to update
-      allow update, delete: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && isAdmin();
     }
     
     // Squads collection

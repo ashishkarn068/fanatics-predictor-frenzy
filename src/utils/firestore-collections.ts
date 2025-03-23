@@ -425,23 +425,31 @@ export const isMatchWithinPredictionWindow = async (matchId: string): Promise<bo
     
     const matchData = matchSnap.data();
     
-    // Check if admin has enabled predictions for this match regardless of time
-    if (matchData.isPredictionEnabledByAdmin === true) {
-      // Still ensure match hasn't started
-      return matchData.status === 'upcoming';
-    }
-    
+    // Convert match date to a Date object
     const matchDate = matchData.date instanceof Timestamp 
       ? matchData.date.toDate() 
       : new Date(matchData.date);
+    
+    // Get current date/time
+    const now = new Date();
+    
+    // IMPORTANT: Always prevent predictions for matches that have already started or ended
+    if (matchDate <= now || matchData.status === 'live' || matchData.status === 'completed') {
+      console.log(`Match ${matchId} has already started or ended. Predictions not allowed.`);
+      return false;
+    }
     
     // Check if match status is upcoming
     if (matchData.status !== 'upcoming') {
       return false;
     }
     
+    // Check if admin has enabled predictions for this match regardless of time window
+    if (matchData.isPredictionEnabledByAdmin === true) {
+      return true; // Admin override, but we've already checked the match hasn't started
+    }
+    
     // Calculate time difference in milliseconds and convert to hours
-    const now = new Date();
     const timeDifferenceMs = matchDate.getTime() - now.getTime();
     const timeDifferenceHours = timeDifferenceMs / (1000 * 60 * 60);
     
@@ -1860,5 +1868,104 @@ export const seedStandardQuestionsIfNeeded = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Error seeding standard questions:', error);
     return false;
+  }
+};
+
+/**
+ * Checks if predictions can be reset based on match time
+ * Users can reset predictions up until 5 minutes before the match starts
+ */
+export const canResetPredictions = async (matchId: string): Promise<boolean> => {
+  try {
+    // Get the match document
+    const matchRef = doc(db, COLLECTIONS.MATCHES, matchId);
+    const matchSnap = await getDoc(matchRef);
+    
+    if (!matchSnap.exists()) {
+      console.error(`Match ${matchId} not found`);
+      return false;
+    }
+    
+    const matchData = matchSnap.data();
+    
+    // Convert match date to a Date object
+    const matchDate = matchData.date instanceof Timestamp 
+      ? matchData.date.toDate() 
+      : new Date(matchData.date);
+    
+    // Get current date/time
+    const now = new Date();
+    
+    // IMPORTANT: Never allow resets for matches that have already started or ended
+    if (matchDate <= now || matchData.status === 'live' || matchData.status === 'completed') {
+      console.log(`Match ${matchId} has already started or ended. Reset not allowed.`);
+      return false;
+    }
+    
+    // Calculate time difference in milliseconds and convert to minutes
+    const timeDifferenceMs = matchDate.getTime() - now.getTime();
+    const timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
+    
+    // Allow resets until 5 minutes before match starts
+    return timeDifferenceMinutes > 5;
+  } catch (error) {
+    console.error('Error checking if predictions can be reset:', error);
+    return false;
+  }
+};
+
+/**
+ * Reset a user's predictions for a match
+ * Only allowed until 5 minutes before the match starts
+ */
+export const resetPredictions = async (userId: string, matchId: string): Promise<boolean> => {
+  try {
+    // First, check if reset is allowed based on match time
+    const resetAllowed = await canResetPredictions(matchId);
+    if (!resetAllowed) {
+      throw new Error('Predictions can only be reset until 5 minutes before the match starts');
+    }
+    
+    // Get all prediction answers for this user and match
+    const predictionAnswersRef = collection(db, 'predictionAnswers');
+    const answersQuery = query(
+      predictionAnswersRef,
+      where('userId', '==', userId),
+      where('matchId', '==', matchId)
+    );
+    const answersSnapshot = await getDocs(answersQuery);
+    
+    if (answersSnapshot.empty) {
+      console.log(`No predictions found for user ${userId} on match ${matchId}`);
+      return false;
+    }
+    
+    // Delete all prediction answers
+    const batch = writeBatch(db);
+    answersSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    // Also find and delete the prediction game record if it exists
+    const predictionGamesRef = collection(db, 'predictionGames');
+    const gamesQuery = query(
+      predictionGamesRef,
+      where('userId', '==', userId),
+      where('matchId', '==', matchId)
+    );
+    const gamesSnapshot = await getDocs(gamesQuery);
+    
+    if (!gamesSnapshot.empty) {
+      gamesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+    }
+    
+    await batch.commit();
+    console.log(`Successfully reset predictions for user ${userId} on match ${matchId}`);
+    return true;
+  } catch (error) {
+    console.error('Error resetting predictions:', error);
+    throw error;
   }
 };

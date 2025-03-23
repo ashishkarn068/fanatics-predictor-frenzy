@@ -7,6 +7,7 @@ import { getTeamLogoUrl, getTeamAbbreviation } from "@/utils/team-utils";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { isPredictionAllowed } from "@/lib/utils";
 
 interface MatchCardProps {
   match: Match;
@@ -34,16 +35,54 @@ const MatchCard = ({ match }: MatchCardProps) => {
 
   // Get the status badge color based on match status
   const getStatusBadge = () => {
-    switch (match.status) {
-      case "upcoming":
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Upcoming</Badge>;
-      case "live":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 animate-pulse">Live</Badge>;
-      case "completed":
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Completed</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+    // Parse the match date, handling both string and Timestamp formats
+    let matchDate: Date;
+    if (typeof match.date === 'string') {
+      matchDate = new Date(match.date);
+    } else if (match.date && typeof match.date.toDate === 'function') {
+      matchDate = match.date.toDate();
+    } else {
+      console.error('Invalid match date format:', match.date);
+      return <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300 font-medium">Unknown</Badge>;
     }
+
+    const now = new Date();
+    const hasMatchDatePassed = matchDate <= now;
+    const timeDiff = matchDate.getTime() - now.getTime();
+    const hoursDifference = timeDiff / (1000 * 60 * 60);
+    const isLessThan24Hours = hoursDifference > 0 && hoursDifference <= 24;
+
+    // Debug the badge determination
+    console.log(`Match ${match.id} badge determination:`, {
+      status: match.status,
+      hasMatchDatePassed, 
+      hoursDifference,
+      isLessThan24Hours,
+      predictionsAllowed: isPredictionAllowed(match)
+    });
+
+    // For matches officially marked as completed or live
+    if (match.status === "completed") {
+      return <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300 font-medium">Completed</Badge>;
+    } else if (match.status === "live") {
+      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 animate-pulse font-medium">LIVE</Badge>;
+    } 
+    
+    // For upcoming matches with passed dates (data inconsistency)
+    if (hasMatchDatePassed) {
+      return <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300 font-medium">Match Time Passed</Badge>;
+    }
+
+    // For matches less than 24 hours away
+    if (isLessThan24Hours && isPredictionAllowed(match)) {
+      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-medium">Predictions Closing Soon</Badge>;
+    }
+    
+    // Regular upcoming match handling
+    const isAllowed = isPredictionAllowed(match);
+    return isAllowed ? 
+      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 font-medium">Predictions Open</Badge> :
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Upcoming</Badge>;
   };
 
   // Get team logo URL - safely handle undefined team names
@@ -83,6 +122,65 @@ const MatchCard = ({ match }: MatchCardProps) => {
       );
     }
     return null;
+  };
+
+  // Check if predictions are allowed for this match
+  const predictionsAllowed = isPredictionAllowed(match);
+
+  // Render appropriate buttons based on match status
+  const renderActionButtons = () => {
+    if (match.status === 'completed') {
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+          <Link to={`/matches/${match.id}/leaderboard`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              <Trophy className="h-4 w-4 mr-2" />
+              Leaderboard
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
+    } else if (match.status === 'live') {
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
+    } else {
+      // For upcoming matches, ONLY show Make Predictions when predictions are allowed
+      if (predictionsAllowed) {
+        console.log(`Match ${match.id}: Showing Make Predictions button (predictionsAllowed=${predictionsAllowed})`);
+        return (
+          <ButtonGroup>
+            <Link to={`/matches/${match.id}`} className="flex-1">
+              <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700">
+                Make Predictions
+              </Button>
+            </Link>
+          </ButtonGroup>
+        );
+      } else {
+        console.log(`Match ${match.id}: Showing View Details button (predictions not allowed, predictionsAllowed=${predictionsAllowed})`);
+        return (
+          <ButtonGroup>
+            <Link to={`/matches/${match.id}`} className="flex-1">
+              <Button variant="outline" className="w-full">
+                View Details
+              </Button>
+            </Link>
+          </ButtonGroup>
+        );
+      }
+    }
   };
 
   return (
@@ -170,27 +268,7 @@ const MatchCard = ({ match }: MatchCardProps) => {
             </div>
             
             <div className="mt-4">
-              {match.status === 'completed' ? (
-                <ButtonGroup>
-                  <Link to={`/matches/${match.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      View Details
-                    </Button>
-                  </Link>
-                  <Link to={`/matches/${match.id}/leaderboard`} className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      <Trophy className="h-4 w-4 mr-2" />
-                      Leaderboard
-                    </Button>
-                  </Link>
-                </ButtonGroup>
-              ) : (
-                <Link to={`/matches/${match.id}`}>
-                  <Button variant="outline" className="w-full">
-                    {match.status === 'upcoming' ? 'Make Predictions' : 'View Match Details'}
-                  </Button>
-                </Link>
-              )}
+              {renderActionButtons()}
             </div>
           </div>
         </div>

@@ -29,6 +29,8 @@ import { forceRefreshQuestions } from '@/utils/refresh-questions';
 import { RefreshCw } from "lucide-react";
 import { standardizePlayerName } from '@/utils/firestore-collections';
 import { isMatchWithinPredictionWindow, isPredictionAllowed } from '@/lib/utils';
+import { resetPredictions, canResetPredictions } from "@/utils/firestore-collections";
+import { cn } from "@/lib/utils";
 
 interface PredictionGameProps {
   match: Match;
@@ -418,6 +420,16 @@ export default function PredictionGame({
       return;
     }
     
+    // Explicitly check if match date has passed
+    if (new Date(match.date) <= new Date()) {
+      toast({
+        title: "Game Has Ended",
+        description: "This game has ended. You cannot make predictions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (isPredictionLocked) {
       toast({
         title: "Predictions Locked",
@@ -587,6 +599,69 @@ export default function PredictionGame({
       toast({
         title: "Error",
         description: "Failed to refresh the database. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Add function to handle resetting predictions
+  const handleResetPredictions = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to reset your predictions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!hasPredicted) {
+      toast({
+        title: "No Predictions Found",
+        description: "You haven't made any predictions for this match yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Confirm reset
+    if (!window.confirm("Are you sure you want to reset your predictions? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Check if we can reset (server-side will also validate this)
+      const canReset = await canResetPredictions(match.id);
+      if (!canReset) {
+        toast({
+          title: "Cannot Reset Predictions",
+          description: "Predictions can only be reset until 5 minutes before the match starts.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Attempt to reset predictions
+      await resetPredictions(user.uid, match.id);
+      
+      // Update local state
+      setUserAnswers([]);
+      setHasPredicted(false);
+      setAnswers({});
+      
+      toast({
+        title: "Predictions Reset",
+        description: "Your predictions have been reset. You can now make new predictions.",
+      });
+    } catch (error) {
+      console.error("Error resetting predictions:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset your predictions. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -845,7 +920,13 @@ export default function PredictionGame({
     <div className="space-y-6">
         <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
         
-        {isPredictionLocked ? (
+        {new Date(match.date) <= new Date() ? (
+          <div className="bg-red-100 dark:bg-red-900 p-4 rounded-md mb-6">
+            <p className="text-red-800 dark:text-red-200 font-medium">
+              This game has ended. You cannot make predictions.
+            </p>
+          </div>
+        ) : isPredictionLocked ? (
           <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
             <p className="text-yellow-800 dark:text-yellow-200">
               Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
@@ -922,66 +1003,82 @@ export default function PredictionGame({
         <div className="bg-green-50 dark:bg-green-900 p-4 rounded-md">
           <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">Your Predictions</h3>
           {hasPredicted && (
-            <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-              Predictions are final and cannot be changed after submission.
-            </p>
+            <>
+              <ul className="space-y-2 mb-4">
+                {userAnswers.map(answer => {
+                  const question = questions.find(q => q.id === answer.questionId);
+                  if (!question) return null;
+                  
+                  let displayAnswer = answer.answer;
+                  
+                  // Format the answer for display
+                  if (question.type === 'winner') {
+                    displayAnswer = answer.answer === match.team1Id 
+                      ? (team1?.name || match.team1Id) 
+                      : (team2?.name || match.team2Id);
+                  } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
+                    if (answer.answer === 'any-team1') {
+                      displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
+                    } else if (answer.answer === 'any-team2') {
+                      displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
+                    } else {
+                      // Just display the player name without team name
+                      displayAnswer = answer.answer;
+                    }
+                  } else if (question.type === 'highestTotal') {
+                    displayAnswer = answer.answer ? `${answer.answer} runs` : 'No prediction';
+                  } else if (question.type === 'moreSixes') {
+                    if (answer.answer === 'tie') {
+                      displayAnswer = 'Tie (Equal Sixes)';
+                    } else if (answer.answer === match.team1Id) {
+                      displayAnswer = team1?.name || match.team1Id;
+                    } else if (answer.answer === match.team2Id) {
+                      displayAnswer = team2?.name || match.team2Id;
+                    }
+                  } else if (question.options) {
+                    const option = question.options.find(o => o.value === answer.answer);
+                    if (option) {
+                      displayAnswer = option.label;
+                    }
+                  }
+                  
+                  return (
+                    <li key={answer.id} className="flex flex-col">
+                      <span className="font-medium">{question.text}</span>
+                      <span className="text-sm">Your answer: {displayAnswer}</span>
+                      {answer.isCorrect !== undefined && (
+                        <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                          {answer.isCorrect 
+                            ? `Correct (+${answer.pointsEarned || question.points} points)`
+                            : answer.pointsEarned < 0
+                              ? `Incorrect (${answer.pointsEarned} points)`
+                              : 'Incorrect'
+                          }
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              
+              {/* Add Reset Button */}
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetPredictions}
+                  disabled={isSubmitting}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  <RefreshCw className="mr-1 h-3 w-3" /> 
+                  Reset Predictions
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  You can reset your predictions until 5 minutes before the match starts.
+                </p>
+              </div>
+            </>
           )}
-          <ul className="space-y-2 text-green-700 dark:text-green-300">
-            {userAnswers.map(answer => {
-              const question = questions.find(q => q.id === answer.questionId);
-              if (!question) return null;
-              
-              let displayAnswer = answer.answer;
-              
-              // Format the answer for display
-              if (question.type === 'winner') {
-                displayAnswer = answer.answer === match.team1Id 
-                  ? (team1?.name || match.team1Id) 
-                  : (team2?.name || match.team2Id);
-              } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
-                if (answer.answer === 'any-team1') {
-                  displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
-                } else if (answer.answer === 'any-team2') {
-                  displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
-                } else {
-                  // Just display the player name without team name
-                  displayAnswer = answer.answer;
-                }
-              } else if (question.type === 'highestTotal') {
-                displayAnswer = answer.answer ? `${answer.answer} runs` : 'No prediction';
-              } else if (question.type === 'moreSixes') {
-                if (answer.answer === 'tie') {
-                  displayAnswer = 'Tie (Equal Sixes)';
-                } else if (answer.answer === match.team1Id) {
-                  displayAnswer = team1?.name || match.team1Id;
-                } else if (answer.answer === match.team2Id) {
-                  displayAnswer = team2?.name || match.team2Id;
-                }
-              } else if (question.options) {
-                const option = question.options.find(o => o.value === answer.answer);
-                if (option) {
-                  displayAnswer = option.label;
-                }
-              }
-              
-              return (
-                <li key={answer.id} className="flex flex-col">
-                  <span className="font-medium">{question.text}</span>
-                  <span className="text-sm">Your answer: {displayAnswer}</span>
-                  {answer.isCorrect !== undefined && (
-                    <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                      {answer.isCorrect 
-                        ? `Correct (+${answer.pointsEarned || question.points} points)`
-                        : answer.pointsEarned < 0
-                          ? `Incorrect (${answer.pointsEarned} points)`
-                          : 'Incorrect'
-                      }
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         </div>
       )}
       

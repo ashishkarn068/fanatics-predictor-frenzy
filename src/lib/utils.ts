@@ -152,6 +152,12 @@ export function isMatchWithinPredictionWindow(matchDate: string): boolean {
   const now = new Date();
   const match = new Date(matchDate);
   
+  // FIRST check: always return false if match date has passed
+  if (match <= now) {
+    console.log('Match date has passed, predictions not allowed');
+    return false;
+  }
+  
   // Calculate the difference in milliseconds
   const timeDifference = match.getTime() - now.getTime();
   
@@ -167,13 +173,45 @@ export function isMatchWithinPredictionWindow(matchDate: string): boolean {
  * Takes into account both time window and admin override
  */
 export function isPredictionAllowed(match: any): boolean {
-  // Check if admin has enabled predictions for this match
-  if (match.isPredictionEnabledByAdmin === true && match.status === 'upcoming') {
+  // Handle both string and Timestamp date formats
+  let matchDate: Date;
+  
+  if (typeof match.date === 'string') {
+    matchDate = new Date(match.date);
+  } else if (match.date && typeof match.date.toDate === 'function') {
+    // Handle Firestore Timestamp objects
+    matchDate = match.date.toDate();
+  } else {
+    console.error('Invalid match date format:', match.date);
+    return false;
+  }
+
+  const now = new Date();
+  const timeDiff = matchDate.getTime() - now.getTime();
+  const hoursDifference = timeDiff / (1000 * 60 * 60);
+
+  // Log useful information for debugging
+  console.log(`Match ${match.id} prediction check:`, { 
+    matchDate: matchDate.toISOString(),
+    now: now.toISOString(),
+    hasDatePassed: matchDate <= now,
+    hoursDifference,
+    adminEnabled: match.isPredictionEnabledByAdmin === true,
+    within24Hours: hoursDifference > 0 && hoursDifference <= 24
+  });
+  
+  // FIRST check: always return false if match date has passed
+  if (matchDate <= now) {
+    return false;
+  }
+  
+  // Check if admin has enabled predictions for this match and match is still upcoming
+  if (match.isPredictionEnabledByAdmin === true) {
     return true;
   }
   
-  // Otherwise, fall back to time-based check
-  return match.status === 'upcoming' && isMatchWithinPredictionWindow(match.date);
+  // Otherwise, check if match is within 24 hours
+  return hoursDifference > 0 && hoursDifference <= 24;
 }
 
 export function isPredictionDeadlinePassed(deadline: string): boolean {
