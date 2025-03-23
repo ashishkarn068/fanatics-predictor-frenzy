@@ -7,6 +7,43 @@ import { Search, Loader2 } from "lucide-react";
 import { Match } from "@/utils/firestore-collections";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Helper function to check if a match date has passed
+const hasMatchDatePassed = (match: Match): boolean => {
+  let matchDate: Date;
+  
+  try {
+    if (typeof match.date === 'string') {
+      matchDate = new Date(match.date);
+    } else if (match.date && typeof match.date.toDate === 'function') {
+      matchDate = match.date.toDate();
+    } else {
+      console.error('Invalid match date format:', match.date);
+      return false;
+    }
+    
+    return matchDate <= new Date();
+  } catch (error) {
+    console.error('Error checking match date:', error);
+    return false;
+  }
+};
+
+// Helper function to get the effective status of a match
+const getEffectiveMatchStatus = (match: Match): 'upcoming' | 'live' | 'completed' => {
+  // If match is officially marked as completed or live, use that status
+  if (match.status === 'completed' || match.status === 'live') {
+    return match.status;
+  }
+  
+  // If match time has passed, treat it as completed regardless of database status
+  if (hasMatchDatePassed(match)) {
+    return 'completed';
+  }
+  
+  // Otherwise, keep the existing status
+  return match.status as 'upcoming';
+};
+
 const Matches = () => {
   const { matches, loading, error } = useMatches();
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
@@ -20,11 +57,11 @@ const Matches = () => {
     
     // Filter by tab
     if (activeTab === "upcoming") {
-      filtered = filtered.filter(match => match.status === "upcoming");
+      filtered = filtered.filter(match => getEffectiveMatchStatus(match) === "upcoming");
     } else if (activeTab === "live") {
-      filtered = filtered.filter(match => match.status === "live");
+      filtered = filtered.filter(match => getEffectiveMatchStatus(match) === "live");
     } else if (activeTab === "completed") {
-      filtered = filtered.filter(match => match.status === "completed");
+      filtered = filtered.filter(match => getEffectiveMatchStatus(match) === "completed");
     }
     
     // Filter by search query
@@ -35,13 +72,13 @@ const Matches = () => {
         let matchDate = "";
         if (typeof match.date === 'string') {
           matchDate = new Date(match.date).toDateString().toLowerCase();
-        } else {
+        } else if (match.date && typeof match.date.toDate === 'function') {
           matchDate = match.date.toDate().toDateString().toLowerCase();
         }
         
-        const venue = match.venue.toLowerCase();
-        const team1 = match.team1.toLowerCase();
-        const team2 = match.team2.toLowerCase();
+        const venue = (match.venue || '').toLowerCase();
+        const team1 = (match.team1 || '').toLowerCase();
+        const team2 = (match.team2 || '').toLowerCase();
         
         return matchDate.includes(query) || 
                venue.includes(query) || 

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Match, COLLECTIONS } from "@/utils/firestore-collections";
+import { Timestamp } from "firebase/firestore";
 
 // Define the LeaderboardEntry interface
 interface LeaderboardEntry {
@@ -34,9 +35,9 @@ const Index = () => {
     const fetchUpcomingMatches = async () => {
       try {
         setMatchesLoading(true);
-        const matchesRef = collection(db, "matches");
+        const matchesRef = collection(db, COLLECTIONS.MATCHES);
         
-        // Get the next 3 matches by date
+        // Get the next 3 matches by date, regardless of status
         const q = query(
           matchesRef,
           orderBy("date", "asc"),
@@ -201,7 +202,7 @@ const Index = () => {
           {/* Upcoming Matches Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Upcoming Matches</h2>
+              <h2 className="text-xl font-bold">Next 3 Matches</h2>
               <Button asChild variant="ghost" size="sm" className="flex items-center gap-1 text-sm">
                 <Link to="/matches">
                   View All <ArrowRight className="h-4 w-4" />

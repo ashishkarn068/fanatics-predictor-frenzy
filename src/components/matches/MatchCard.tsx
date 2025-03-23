@@ -70,7 +70,7 @@ const MatchCard = ({ match }: MatchCardProps) => {
     
     // For upcoming matches with passed dates (data inconsistency)
     if (hasMatchDatePassed) {
-      return <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300 font-medium">Match Time Passed</Badge>;
+      return <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300 font-medium">Completed</Badge>;
     }
 
     // For matches less than 24 hours away
@@ -129,6 +129,30 @@ const MatchCard = ({ match }: MatchCardProps) => {
 
   // Render appropriate buttons based on match status
   const renderActionButtons = () => {
+    // Parse the match date, handling both string and Timestamp formats
+    let matchDate: Date;
+    if (typeof match.date === 'string') {
+      matchDate = new Date(match.date);
+    } else if (match.date && typeof match.date.toDate === 'function') {
+      matchDate = match.date.toDate();
+    } else {
+      console.error('Invalid match date format when rendering buttons:', match.date);
+      // Default fallback
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
+    }
+
+    const now = new Date();
+    const hasMatchDatePassed = matchDate <= now;
+
+    // If match is officially completed
     if (match.status === 'completed') {
       return (
         <ButtonGroup>
@@ -145,7 +169,9 @@ const MatchCard = ({ match }: MatchCardProps) => {
           </Link>
         </ButtonGroup>
       );
-    } else if (match.status === 'live') {
+    } 
+    // If match is live
+    else if (match.status === 'live') {
       return (
         <ButtonGroup>
           <Link to={`/matches/${match.id}`} className="flex-1">
@@ -155,31 +181,44 @@ const MatchCard = ({ match }: MatchCardProps) => {
           </Link>
         </ButtonGroup>
       );
-    } else {
-      // For upcoming matches, ONLY show Make Predictions when predictions are allowed
-      if (predictionsAllowed) {
-        console.log(`Match ${match.id}: Showing Make Predictions button (predictionsAllowed=${predictionsAllowed})`);
-        return (
-          <ButtonGroup>
-            <Link to={`/matches/${match.id}`} className="flex-1">
-              <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700">
-                Make Predictions
-              </Button>
-            </Link>
-          </ButtonGroup>
-        );
-      } else {
-        console.log(`Match ${match.id}: Showing View Details button (predictions not allowed, predictionsAllowed=${predictionsAllowed})`);
-        return (
-          <ButtonGroup>
-            <Link to={`/matches/${match.id}`} className="flex-1">
-              <Button variant="outline" className="w-full">
-                View Details
-              </Button>
-            </Link>
-          </ButtonGroup>
-        );
-      }
+    } 
+    // If match time has passed but status hasn't been updated
+    else if (hasMatchDatePassed) {
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
+    }
+    // For upcoming matches with predictions allowed
+    else if (predictionsAllowed) {
+      console.log(`Match ${match.id}: Showing Make Predictions button (predictionsAllowed=${predictionsAllowed})`);
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700">
+              Make Predictions
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
+    } 
+    // For all other cases (upcoming matches with predictions not allowed)
+    else {
+      console.log(`Match ${match.id}: Showing View Details button (predictions not allowed, predictionsAllowed=${predictionsAllowed})`);
+      return (
+        <ButtonGroup>
+          <Link to={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+        </ButtonGroup>
+      );
     }
   };
 

@@ -231,6 +231,52 @@ export const updateUser = async (userId: string, userData: Partial<User>): Promi
   }
 };
 
+// Helper function to check and update match status based on date
+const syncMatchStatusWithDate = (match: Match): Match => {
+  // Skip if match is already completed or live
+  if (match.status === 'completed' || match.status === 'live') {
+    return match;
+  }
+  
+  // Parse the match date
+  let matchDate: Date;
+  try {
+    if (typeof match.date === 'string') {
+      matchDate = new Date(match.date);
+    } else if (match.date && typeof match.date.toDate === 'function') {
+      matchDate = match.date.toDate();
+    } else {
+      console.error('Invalid match date format:', match.date);
+      return match; // Return unchanged if we can't parse the date
+    }
+  } catch (error) {
+    console.error('Error parsing match date:', error);
+    return match; // Return unchanged if error
+  }
+  
+  const now = new Date();
+  
+  // If match time has passed and status is still 'upcoming', update it to 'completed'
+  if (matchDate <= now && match.status === 'upcoming') {
+    console.log(`Auto-updating match ${match.id} status to 'completed' because date has passed`);
+    
+    // Create a new match object with updated status
+    const updatedMatch = {
+      ...match,
+      status: 'completed' as 'completed'
+    };
+    
+    // Try to update in Firestore (don't await to avoid blocking)
+    updateMatch(match.id, { status: 'completed' })
+      .then(() => console.log(`Successfully updated match ${match.id} status to 'completed' in database`))
+      .catch(error => console.error(`Failed to update match ${match.id} status:`, error));
+    
+    return updatedMatch;
+  }
+  
+  return match;
+};
+
 // Matches Collection
 export const getMatches = async (): Promise<Match[]> => {
   try {
@@ -240,10 +286,13 @@ export const getMatches = async (): Promise<Match[]> => {
     );
     
     const matchesSnapshot = await getDocs(matchesQuery);
-    return matchesSnapshot.docs.map(doc => ({
+    const matches = matchesSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Match[];
+    
+    // Auto-update match status based on date
+    return matches.map(match => syncMatchStatusWithDate(match));
   } catch (error) {
     console.error('Error getting matches:', error);
     throw error;
@@ -255,15 +304,21 @@ export const getUpcomingMatches = async (): Promise<Match[]> => {
     const now = new Date();
     const matchesQuery = query(
       collection(db, COLLECTIONS.MATCHES),
-      where('date', '>=', now),
+      where('status', '==', 'upcoming'),
       orderBy('date', 'asc')
     );
     
     const matchesSnapshot = await getDocs(matchesQuery);
-    return matchesSnapshot.docs.map(doc => ({
+    const matches = matchesSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Match[];
+    
+    // Filter matches that truly haven't happened yet
+    // (this is needed because the query might return matches with upcoming status whose time has actually passed)
+    return matches
+      .map(match => syncMatchStatusWithDate(match))
+      .filter(match => match.status === 'upcoming');
   } catch (error) {
     console.error('Error getting upcoming matches:', error);
     throw error;
