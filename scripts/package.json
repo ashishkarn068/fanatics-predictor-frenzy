@@ -1,0 +1,12 @@
+{
+  "name": "scripts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Scripts for the IPL 2025 prediction app",
+  "main": "index.js",
+  "scripts": {
+    "init-firestore": "node init-firestore.js",
+    "generate-rules": "node generate-firestore-rules.js"
+  }
+}

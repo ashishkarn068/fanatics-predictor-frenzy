@@ -1,29 +1,73 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, User, onAuthStateChanged } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirebaseConfig } from "@/utils/firebase-config";
+import { seedStandardQuestionsIfNeeded } from "@/utils/firestore-collections";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyC8ee2OBNfvdvRnTnatdqXC6EN7yflqmbs",
-  authDomain: "fanatics-predictor.firebaseapp.com",
-  projectId: "fanatics-predictor",
-  storageBucket: "fanatics-predictor.firebasestorage.app",
-  messagingSenderId: "882421015273",
-  appId: "1:882421015273:web:ee00904e7a7bb0c0b50678",
-  measurementId: "G-EH6FM2JFG0"
-};
-
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+let app: FirebaseApp | null = null;
+let auth: ReturnType<typeof getAuth> | null = null;
+let db: ReturnType<typeof getFirestore> | null = null;
 
 // Auth providers
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
+
+// Initialize Firebase with configuration from Azure Key Vault
+export async function initializeFirebase() {
+  try {
+    if (app) return { app, auth, db }; // Return existing instances if already initialized
+
+    console.log('Initializing Firebase with config from Azure Key Vault...');
+    const firebaseConfig = await getFirebaseConfig();
+    
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+
+    // Enable offline persistence for Firestore
+    if (db) {
+      enableIndexedDbPersistence(db)
+        .then(() => {
+          console.log('Firestore persistence enabled');
+        })
+        .catch((err) => {
+          console.error('Error enabling Firestore persistence:', err);
+          if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('The current browser does not support persistence.');
+          }
+        });
+        
+      // Seed standard questions if needed
+      seedStandardQuestionsIfNeeded()
+        .then(seeded => {
+          if (seeded) {
+            console.log('Standard questions seeded successfully');
+          } else {
+            console.log('Standard questions already exist, no seeding needed');
+          }
+        })
+        .catch(err => {
+          console.error('Error seeding standard questions:', err);
+        });
+    }
+
+    // Debug Firebase connection in development
+    if (import.meta.env.DEV) {
+      console.log('Firebase initialized with config:', {
+        projectId: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain
+      });
+    }
+
+    return { app, auth, db };
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+    throw error;
+  }
+}
 
 export {
   auth,

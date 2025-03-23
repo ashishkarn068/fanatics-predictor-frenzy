@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    
+    function isMatchStarted(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      // Check if match date is in the past or status is not 'upcoming'
+      return match.data.date < request.time || match.data.status != 'upcoming';
+    }
+    
+    function isMatchWithinPredictionWindow(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      
+      // Check if admin has enabled predictions for this match regardless of time
+      if (match.data.isPredictionEnabledByAdmin == true && match.data.status == 'upcoming') {
+        return true;
+      }
+      
+      let matchTime = match.data.date;
+      let currentTime = request.time;
+      
+      // Calculate the difference in milliseconds and convert to hours
+      let timeDifferenceMs = matchTime.toMillis() - currentTime.toMillis();
+      let timeDifferenceHours = timeDifferenceMs / (1000 * 60 * 60);
+      
+      // Return true if match is less than 24 hours away and hasn't started
+      return timeDifferenceHours > 0 && timeDifferenceHours <= 24 && match.data.status == 'upcoming';
+    }
+    
+    // Function to check if a match is within the reset window (more than 5 minutes before start)
+    function isWithinResetWindow(matchId) {
+      let match = get(/databases/$(database)/documents/matches/$(matchId));
+      let matchTime = match.data.date;
+      let currentTime = request.time;
+      
+      // Match must not have started
+      if (match.data.status != 'upcoming' || matchTime <= currentTime) {
+        return false;
+      }
+      
+      // Calculate time difference in minutes
+      let timeDifferenceMs = matchTime.toMillis() - currentTime.toMillis();
+      let timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
+      
+      // Allow reset until 5 minutes before match starts
+      return timeDifferenceMinutes > 5;
+    }
+    
+    // Allow anyone to read team data
+    match /teams/{teamId} {
+      allow read: if true;
+      // Only allow writes from authenticated users with admin role
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Matches collection
+    match /matches/{matchId} {
+      allow read: if true;
+      // Only allow writes from authenticated users with admin role
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Poll questions
+    match /pollQuestions/{questionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Prediction Games - prevent modifications after first submission
+    match /predictionGames/{gameId} {
+      allow read: if true;
+      // Allow creation only if the match is within 24 hours and hasn't started
+      allow create: if isAuthenticated() && 
+                     isMatchWithinPredictionWindow(request.resource.data.matchId);
+      // Allow users to delete their own prediction games until 5 minutes before the match
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid &&
+                     isWithinResetWindow(resource.data.matchId);
+      // Only allow admins to update
+      allow update: if isAuthenticated() && isAdmin();
+    }
+    
+    // Prediction Answers - prevent modifications after first submission
+    match /predictionAnswers/{answerId} {
+      allow read: if isAuthenticated() && (
+                    request.auth.uid == resource.data.userId || isAdmin()
+                  );
+      // Allow creation only if the match is within 24 hours, hasn't started, and the user owns the answer
+      allow create: if isAuthenticated() && 
+                     request.auth.uid == request.resource.data.userId &&
+                     isMatchWithinPredictionWindow(request.resource.data.matchId);
+      // Allow users to delete their own answers until 5 minutes before the match
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid &&
+                     isWithinResetWindow(resource.data.matchId);
+      // Only allow admins to update
+      allow update: if isAuthenticated() && isAdmin();
+    }
+    
+    // Squads collection
+    match /squads/{squadId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // Leaderboard
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // User profiles
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Standard questions collection
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // System settings
+    match /systemSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // For development purposes only - remove this in production
+    // match /{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}

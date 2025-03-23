@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Team, Match, PredictionPoll, User } from "./types";
-import { teams } from "./mock-data";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,8 +23,37 @@ export function formatTime(date: string): string {
   });
 }
 
-export function formatDateTime(date: string): string {
-  return `${formatDate(date)} at ${formatTime(date)}`;
+export function formatDateTime(date: string | Date): string {
+  if (typeof date === 'string') {
+    return `${formatDate(date)} at ${formatTime(date)}`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+}
+
+/**
+ * Returns the initials from a display name for use in avatar fallbacks
+ */
+export function getAvatarFallback(displayName: string): string {
+  if (!displayName) return "?";
+  
+  const names = displayName.trim().split(/\s+/);
+  
+  if (names.length === 1) {
+    // Get the first two characters of the name if only one name is provided
+    return displayName.substring(0, 2).toUpperCase();
+  }
+  
+  // Get initials from first and last name
+  return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
 }
 
 export function getTeamById(teamId: string): Team | undefined {
@@ -40,7 +68,43 @@ export function getTeamById(teamId: string): Team | undefined {
       logo: '/placeholder.svg'
     };
   }
-  return teams.find(team => team.id === teamId);
+  
+  // Create a fallback team with basic info
+  return {
+    id: teamId,
+    name: teamId === '1' ? 'Mumbai Indians' : 
+          teamId === '2' ? 'Chennai Super Kings' :
+          teamId === '3' ? 'Royal Challengers Bangalore' :
+          teamId === '4' ? 'Kolkata Knight Riders' :
+          teamId === '5' ? 'Delhi Capitals' :
+          teamId === '6' ? 'Punjab Kings' :
+          teamId === '7' ? 'Rajasthan Royals' :
+          teamId === '8' ? 'Sunrisers Hyderabad' :
+          teamId === '9' ? 'Gujarat Titans' :
+          teamId === '10' ? 'Lucknow Super Giants' : 'Unknown Team',
+    shortName: teamId === '1' ? 'MI' : 
+               teamId === '2' ? 'CSK' :
+               teamId === '3' ? 'RCB' :
+               teamId === '4' ? 'KKR' :
+               teamId === '5' ? 'DC' :
+               teamId === '6' ? 'PBKS' :
+               teamId === '7' ? 'RR' :
+               teamId === '8' ? 'SRH' :
+               teamId === '9' ? 'GT' :
+               teamId === '10' ? 'LSG' : 'TBD',
+    primaryColor: '#1976D2',
+    secondaryColor: '#FFFFFF',
+    logo: `/images/teams/${teamId === '1' ? 'mi' : 
+                           teamId === '2' ? 'csk' :
+                           teamId === '3' ? 'rcb' :
+                           teamId === '4' ? 'kkr' :
+                           teamId === '5' ? 'dc' :
+                           teamId === '6' ? 'pbks' :
+                           teamId === '7' ? 'rr' :
+                           teamId === '8' ? 'srh' :
+                           teamId === '9' ? 'gt' :
+                           teamId === '10' ? 'lsg' : 'default'}.png`
+  };
 }
 
 export function getMatchStatus(match: Match): string {
@@ -76,6 +140,78 @@ export function getTimeUntilMatch(matchDate: string): string {
   }
   
   return `${diffMinutes}m until match`;
+}
+
+/**
+ * Checks if a match is within the 24-hour prediction window
+ * Returns true if the match is less than 24 hours away, false otherwise
+ * This is a client-side validation only, security rules should enforce this on the server
+ */
+export function isMatchWithinPredictionWindow(matchDate: string): boolean {
+  // Convert both dates to UTC timestamps to ensure consistent comparison
+  const now = new Date();
+  const match = new Date(matchDate);
+  
+  // FIRST check: always return false if match date has passed
+  if (match <= now) {
+    console.log('Match date has passed, predictions not allowed');
+    return false;
+  }
+  
+  // Calculate the difference in milliseconds
+  const timeDifference = match.getTime() - now.getTime();
+  
+  // Convert to hours (1000 ms * 60 s * 60 min)
+  const hoursDifference = timeDifference / (1000 * 60 * 60);
+  
+  // Return true if match is less than 24 hours away and in the future
+  return hoursDifference > 0 && hoursDifference <= 24;
+}
+
+/**
+ * Enhanced version that checks if predictions are allowed for a match
+ * Takes into account both time window and admin override
+ */
+export function isPredictionAllowed(match: any): boolean {
+  // Handle both string and Timestamp date formats
+  let matchDate: Date;
+  
+  if (typeof match.date === 'string') {
+    matchDate = new Date(match.date);
+  } else if (match.date && typeof match.date.toDate === 'function') {
+    // Handle Firestore Timestamp objects
+    matchDate = match.date.toDate();
+  } else {
+    console.error('Invalid match date format:', match.date);
+    return false;
+  }
+
+  const now = new Date();
+  const timeDiff = matchDate.getTime() - now.getTime();
+  const hoursDifference = timeDiff / (1000 * 60 * 60);
+
+  // Log useful information for debugging
+  console.log(`Match ${match.id} prediction check:`, { 
+    matchDate: matchDate.toISOString(),
+    now: now.toISOString(),
+    hasDatePassed: matchDate <= now,
+    hoursDifference,
+    adminEnabled: match.isPredictionEnabledByAdmin === true,
+    within24Hours: hoursDifference > 0 && hoursDifference <= 24
+  });
+  
+  // FIRST check: always return false if match date has passed
+  if (matchDate <= now) {
+    return false;
+  }
+  
+  // Check if admin has enabled predictions for this match and match is still upcoming
+  if (match.isPredictionEnabledByAdmin === true) {
+    return true;
+  }
+  
+  // Otherwise, check if match is within 24 hours
+  return hoursDifference > 0 && hoursDifference <= 24;
 }
 
 export function isPredictionDeadlinePassed(deadline: string): boolean {

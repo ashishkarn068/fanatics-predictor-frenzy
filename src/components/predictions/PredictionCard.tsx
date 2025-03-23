@@ -1,35 +1,44 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PredictionPoll } from "@/lib/types";
 import { isPredictionDeadlinePassed, formatDateTime } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface PredictionCardProps {
   poll: PredictionPoll;
-  onSubmit: (pollId: string, selectedOptionId: string) => void;
-  userPredictionId?: string;
+  onSubmit: (pollId: string, selectedValue: string) => void;
+  userPrediction?: string;
 }
 
-const PredictionCard = ({ poll, onSubmit, userPredictionId }: PredictionCardProps) => {
-  const [selectedOptionId, setSelectedOptionId] = useState<string>(userPredictionId || "");
+const PredictionCard = ({ poll, onSubmit, userPrediction }: PredictionCardProps) => {
+  const [selectedValue, setSelectedValue] = useState<string>(userPrediction || "");
+  const [inputValue, setInputValue] = useState<string>(userPrediction || "");
   const deadlinePassed = isPredictionDeadlinePassed(poll.deadline);
   const { toast } = useToast();
 
   const handleSubmit = () => {
-    if (!selectedOptionId) {
+    let valueToSubmit = "";
+    
+    if (poll.type === 'single') {
+      valueToSubmit = selectedValue;
+    } else if (poll.type === 'number' || poll.type === 'text') {
+      valueToSubmit = inputValue;
+    }
+    
+    if (!valueToSubmit) {
       toast({
-        title: "Selection required",
-        description: "Please select an option before submitting",
+        title: "Input required",
+        description: "Please provide a prediction before submitting",
         variant: "destructive",
       });
       return;
     }
 
-    onSubmit(poll.id, selectedOptionId);
+    onSubmit(poll.id, valueToSubmit);
     toast({
       title: "Prediction submitted!",
       description: "Your prediction has been recorded.",
@@ -44,58 +53,55 @@ const PredictionCard = ({ poll, onSubmit, userPredictionId }: PredictionCardProp
             <CardTitle className="text-lg">{poll.title}</CardTitle>
             <CardDescription>{poll.description}</CardDescription>
           </div>
-          <div className="bg-ipl-blue text-white text-xs font-semibold px-2 py-1 rounded">
+          <div className="bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded">
             {poll.points} pts
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <RadioGroup
-            value={selectedOptionId}
-            onValueChange={setSelectedOptionId}
-            className="space-y-2"
-            disabled={deadlinePassed}
-          >
-            {poll.options.map((option) => (
-              <div key={option.id} className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value={option.id}
-                  id={option.id}
-                  disabled={deadlinePassed}
-                />
-                <Label
-                  htmlFor={option.id}
-                  className={`cursor-pointer ${
-                    deadlinePassed ? "text-gray-400" : ""
-                  }`}
-                >
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-
-          <div className="pt-2">
-            {deadlinePassed ? (
-              <div className="text-xs text-red-500">
-                Deadline passed: {formatDateTime(poll.deadline)}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500">
-                Deadline: {formatDateTime(poll.deadline)}
+        {deadlinePassed ? (
+          <div className="text-sm text-gray-500 italic">
+            Predictions closed at {formatDateTime(poll.deadline)}
+            {userPrediction && (
+              <div className="mt-2 p-2 bg-gray-100 rounded-md">
+                <p className="font-medium">Your prediction:</p>
+                <p>{userPrediction}</p>
               </div>
             )}
           </div>
-
-          <Button
-            onClick={handleSubmit}
-            className="w-full bg-ipl-blue hover:bg-ipl-blue/90"
-            disabled={deadlinePassed || !selectedOptionId}
-          >
-            {userPredictionId ? "Update Prediction" : "Submit Prediction"}
-          </Button>
-        </div>
+        ) : (
+          <>
+            {poll.type === 'single' && poll.options.length > 0 && (
+              <RadioGroup value={selectedValue} onValueChange={setSelectedValue} className="space-y-2">
+                {poll.options.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.value} id={option.id} />
+                    <Label htmlFor={option.id} className="cursor-pointer">{option.label}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+            
+            {(poll.type === 'number' || poll.type === 'text') && (
+              <div className="space-y-2">
+                <Input 
+                  type={poll.type === 'number' ? 'number' : 'text'}
+                  placeholder={`Enter your prediction...`}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                />
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full mt-4"
+              disabled={deadlinePassed}
+            >
+              Submit Prediction
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );

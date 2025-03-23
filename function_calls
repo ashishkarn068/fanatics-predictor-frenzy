@@ -1,0 +1,403 @@
+<invoke name="read_file">
+<parameter name="target_file">src/lib/types.ts</parameter>
+<parameter name="should_read_entire_file">true</parameter>
+</invoke>
+
+<invoke name="read_file">
+<parameter name="target_file">src/components/predictions/MatchPredictions.tsx</parameter>
+<parameter name="should_read_entire_file">true</parameter>
+</invoke>
+
+<invoke name="read_file">
+<parameter name="target_file">src/utils/firestore-collections.ts</parameter>
+<parameter name="offset">20</parameter>
+<parameter name="limit">50</parameter>
+</invoke>
+
+<invoke name="read_file">
+<parameter name="target_file">src/pages/MatchDetails.tsx</parameter>
+<parameter name="should_read_entire_file">true</parameter>
+</invoke>
+
+<invoke name="edit_file">
+<parameter name="target_file">src/components/predictions/MatchPredictions.tsx</parameter>
+<parameter name="instructions">Update the MatchPredictions component to work with the Match type from lib/types.ts and properly handle teams and players.</parameter>
+<parameter name="code_edit">import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PredictionGame from "./PredictionGame";
+import Leaderboard from "./Leaderboard";
+import ScoringSystem from "./ScoringSystem";
+import { Match, Team, Player } from "@/lib/types";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where, limit, doc, getDoc } from "firebase/firestore";
+
+interface MatchPredictionsProps {
+  match: Match;
+  players: Player[];
+}
+
+export default function MatchPredictions({ match, players }: MatchPredictionsProps) {
+  const [activeTab, setActiveTab] = useState("predict");
+  const [team1, setTeam1] = useState<Team | null>(null);
+  const [team2, setTeam2] = useState<Team | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      setLoading(true);
+      try {
+        // Since we're working with local teams data now, 
+        // we'll try to find matching teams based on players
+        const team1Players = players.filter(p => p.teamId === match.team1Id);
+        const team2Players = players.filter(p => p.teamId === match.team2Id);
+        
+        if (team1Players.length > 0) {
+          // Create a basic team object from the first player's team
+          setTeam1({
+            id: match.team1Id,
+            name: match.team1Id,
+            shortName: match.team1Id.substring(0, 3).toUpperCase(),
+            primaryColor: '#1E40AF',
+            secondaryColor: '#93C5FD',
+            logo: ''
+          });
+        }
+        
+        if (team2Players.length > 0) {
+          // Create a basic team object from the first player's team
+          setTeam2({
+            id: match.team2Id,
+            name: match.team2Id,
+            shortName: match.team2Id.substring(0, 3).toUpperCase(),
+            primaryColor: '#1E40AF',
+            secondaryColor: '#93C5FD',
+            logo: ''
+          });
+        }
+      } catch (error) {
+        console.error("Error mapping teams from players:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTeams();
+  }, [match, players]);
+
+  return (
+    <div className="mt-8">
+      <Tabs defaultValue="predict" onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="predict">Make Predictions</TabsTrigger>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+          <TabsTrigger value="scoring">Scoring System</TabsTrigger>
+        </TabsList>
+        <TabsContent value="predict">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <PredictionGame 
+              match={match} 
+              teams={{ team1, team2 }}
+              players={players} 
+              loading={loading} 
+            />
+          </div>
+        </TabsContent>
+        <TabsContent value="leaderboard">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <Leaderboard matchId={match.id} />
+          </div>
+        </TabsContent>
+        <TabsContent value="scoring">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <ScoringSystem />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}</parameter>
+</invoke>
+
+<invoke name="edit_file">
+<parameter name="target_file">src/pages/MatchDetails.tsx</parameter>
+<parameter name="instructions">Fix the type mismatch errors in the entire file by ensuring compatibility between Firestore Match and the expected Match type.</parameter>
+<parameter name="code_edit">import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatDateTime, getTeamById, getMatchStatus } from "@/lib/utils";
+import { Match, Team, Player } from "@/lib/types";
+import { matches } from "@/lib/mock-data";
+import MatchPredictions from "@/components/predictions/MatchPredictions";
+import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { getMatch } from "@/utils/firestore-collections";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getTeamLogoUrl } from "@/utils/team-utils";
+
+// Mock team data to ensure we always have team information
+const mockTeams: Record<string, Team> = {
+  '1': {
+    id: '1',
+    name: 'Mumbai Indians',
+    shortName: 'MI',
+    primaryColor: '#004BA0',
+    secondaryColor: '#D1AB3E',
+    logo: '/images/teams/mi.png'
+  },
+  // ... other mock teams remain unchanged
+};
+
+// Mock players for each team
+const mockPlayers: Record<string, Player[]> = {
+  '1': [
+    { id: 'p1-mi', name: 'Rohit Sharma', teamId: '1', role: 'Batsman', image: '' },
+    // ... other mock players remain unchanged
+  ],
+  // ... other teams' players remain unchanged
+};
+
+const MatchDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [match, setMatch] = useState<Match | null>(null);
+  const [team1, setTeam1] = useState<Team | null>(null);
+  const [team2, setTeam2] = useState<Team | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMatchAndPlayers = async () => {
+      if (!id) {
+        setError("Match ID not provided");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+// Fetch match data
+const matchData = await getMatch(id);
+
+if (!matchData) {
+  setError("Match not found");
+  setLoading(false);
+  return;
+}
+
+        // Create a compatible Match object from Firestore data
+        const convertedMatch: Match = {
+  id: matchData.id,
+  team1Id: matchData.team1 || "Unknown Team",
+  team2Id: matchData.team2 || "Unknown Team",
+  venue: matchData.venue,
+  date: matchData.date,
+  status: matchData.status || 'upcoming',
+  result: matchData.result?.winner || ''
+};
+        
+setMatch(convertedMatch);
+        
+        // Find matching teams from mock data
+        const findTeamByName = (teamName: string): Team | null => {
+          return Object.values(mockTeams).find(
+            t => t.name.toLowerCase() === teamName.toLowerCase() || 
+                 t.shortName.toLowerCase() === teamName.toLowerCase()
+          ) || null;
+        };
+        
+        const team1Data = findTeamByName(matchData.team1 || '');
+        const team2Data = findTeamByName(matchData.team2 || '');
+        
+        setTeam1(team1Data);
+        setTeam2(team2Data);
+        
+        // Use mock players
+        const teamId1 = team1Data?.id || '';
+        const teamId2 = team2Data?.id || '';
+        
+        const allPlayers = [
+          ...(mockPlayers[teamId1] || []),
+          ...(mockPlayers[teamId2] || [])
+        ];
+        
+        setPlayers(allPlayers);
+        
+      } catch (error) {
+        console.error("Error fetching match details:", error);
+        setError("Failed to load match details. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMatchAndPlayers();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <Skeleton className="h-12 w-3/4 mb-4" />
+          <Skeleton className="h-6 w-1/2 mb-8" />
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col items-center">
+              <Skeleton className="h-24 w-24 rounded-full mb-2" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+            <Skeleton className="h-10 w-10" />
+            <div className="flex flex-col items-center">
+              <Skeleton className="h-24 w-24 rounded-full mb-2" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !match) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error || "Failed to load match details"}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Format match date
+  const formatMatchDate = () => {
+    try {
+      let matchDate;
+      if (typeof match.date === 'string') {
+        matchDate = new Date(match.date);
+      } else if (match.date && typeof match.date.toDate === 'function') {
+        matchDate = match.date.toDate();
+      } else if (match.date) {
+        matchDate = new Date(match.date as any);
+      } else {
+        return "Date not available";
+      }
+      
+      return matchDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date not available";
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
+        <Button 
+          variant="ghost" 
+          className="mb-6"
+          onClick={() => navigate(-1)}
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Back to Matches
+        </Button>
+
+        {/* Match Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+              <h1 className="text-2xl font-bold mb-1">{match.team1Id} vs {match.team2Id}</h1>
+              <p className="text-gray-600">{match.venue || "Venue not specified"}</p>
+              <p className="text-gray-600">{formatMatchDate()}</p>
+            </div>
+            
+            <div>
+              {match.status === 'live' ? (
+                <Badge className="bg-red-500 animate-pulse-subtle">LIVE</Badge>
+              ) : match.status === 'completed' ? (
+                <Badge variant="outline" className="text-gray-500">Completed</Badge>
+              ) : (
+                <Badge variant="outline" className="text-gray-500">{getMatchStatus(match)}</Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Teams */}
+          <div className="flex flex-col md:flex-row items-center justify-center mt-8 space-y-6 md:space-y-0">
+            <div className="flex flex-col items-center text-center md:w-1/3">
+              <div className="h-24 w-24 flex items-center justify-center">
+                <img 
+                  src={getTeamLogoUrl(match.team1Id)} 
+                  alt={match.team1Id} 
+                  className="max-h-full max-w-full object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = "/images/teams/default.png";
+                  }}
+                />
+              </div>
+              <h2 className="text-xl font-bold" style={{ color: team1?.primaryColor }}>{match.team1Id}</h2>
+            </div>
+
+            <div className="flex flex-col items-center justify-center md:w-1/3">
+              <div className="text-3xl font-bold mb-2">VS</div>
+              {match.status === 'completed' && match.result && (
+                <Alert className="mt-4">
+                  <AlertDescription>{match.result}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center text-center md:w-1/3">
+              <div className="h-24 w-24 flex items-center justify-center">
+                <img 
+                  src={getTeamLogoUrl(match.team2Id)} 
+                  alt={match.team2Id} 
+                  className="max-h-full max-w-full object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = "/images/teams/default.png";
+                  }}
+                />
+              </div>
+              <h2 className="text-xl font-bold" style={{ color: team2?.primaryColor }}>{match.team2Id}</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Integrated Prediction System */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-6">Match Predictions</h2>
+          
+          {match.status === 'completed' ? (
+            <div className="bg-gray-50 rounded-lg p-6 text-center mb-6">
+              <p className="text-lg text-gray-600">This match has ended. No more predictions can be made.</p>
+              <p className="text-gray-500 mt-2">You can still view the leaderboard and scoring system below.</p>
+            </div>
+          ) : null}
+          
+          <MatchPredictions match={match} players={players} />
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default MatchDetails;</parameter>
+</invoke> 

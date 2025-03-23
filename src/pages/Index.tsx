@@ -2,22 +2,126 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Trophy, ArrowRight, Calendar, Users } from "lucide-react";
-import { matches, teams, leaderboard } from "@/lib/mock-data";
+import { teams } from "@/lib/mock-data";
 import MatchCard from "@/components/matches/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Match, COLLECTIONS } from "@/utils/firestore-collections";
+import { Timestamp } from "firebase/firestore";
+
+// Define the LeaderboardEntry interface
+interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  photoURL?: string;
+  totalPoints: number;
+  correctPredictions?: number;
+  totalPredictions?: number;
+  accuracy?: number;
+}
 
 const Index = () => {
   const { currentUser, loading } = useAuth();
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(true);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   
-  // Get next 3 upcoming matches
-  const upcomingMatches = matches
-    .filter(match => match.status === "upcoming")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 3);
+  // Fetch upcoming matches from Firestore
+  useEffect(() => {
+    const fetchUpcomingMatches = async () => {
+      try {
+        setMatchesLoading(true);
+        const matchesRef = collection(db, COLLECTIONS.MATCHES);
+        
+        // Get the next 3 matches by date, regardless of status
+        const q = query(
+          matchesRef,
+          orderBy("date", "asc"),
+          limit(3)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const matches: Match[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          matches.push({ id: doc.id, ...doc.data() } as Match);
+        });
+        
+        console.log("Fetched matches:", matches.length);
+        setUpcomingMatches(matches);
+      } catch (error) {
+        console.error("Error fetching upcoming matches:", error);
+      } finally {
+        setMatchesLoading(false);
+      }
+    };
+    
+    fetchUpcomingMatches();
+  }, []);
   
-  // Get top 5 from leaderboard
-  const topPlayers = leaderboard.entries.slice(0, 5);
+  // Fetch global leaderboard
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        setLeaderboardLoading(true);
+        // Query the global leaderboard collection
+        const globalLeaderboardRef = collection(db, COLLECTIONS.GLOBAL_LEADERBOARD);
+        const leaderboardQuery = query(globalLeaderboardRef, orderBy("totalPoints", "desc"), limit(5));
+        const leaderboardSnapshot = await getDocs(leaderboardQuery);
+        
+        // Convert to array
+        const entries = leaderboardSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            userId: data.userId,
+            displayName: data.displayName || "Anonymous User",
+            photoURL: data.photoURL,
+            totalPoints: data.totalPoints || 0,
+            correctPredictions: data.correctPredictions || 0,
+            totalPredictions: data.totalPredictions || 0,
+            accuracy: data.accuracy || 0
+          };
+        });
+        
+        console.log("Fetched leaderboard entries:", entries.length);
+        setLeaderboardEntries(entries);
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLeaderboardLoading(false);
+      }
+    };
+    
+    fetchLeaderboard();
+  }, []);
+
+  // Loading skeleton for matches
+  const MatchesSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-gray-200 rounded-full mb-2"></div>
+              <div className="h-4 w-12 bg-gray-200 rounded"></div>
+            </div>
+            <div className="h-6 w-6 bg-gray-200 rounded"></div>
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-gray-200 rounded-full mb-2"></div>
+              <div className="h-4 w-12 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+          <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+        </div>
+      ))}
+    </div>
+  );
 
   // Loading skeleton for leaderboard
   const LeaderboardSkeleton = () => (
@@ -46,38 +150,45 @@ const Index = () => {
               <p className="text-base md:text-lg mb-4">
                 Test your cricket prediction skills during IPL 2025
               </p>
-              <div className="flex gap-3">
-                <Button asChild size="sm" className="bg-white text-ipl-blue hover:bg-white/90">
+              <div className="flex flex-wrap gap-3">
+                <Button asChild size="lg" className="bg-white text-ipl-blue hover:bg-white/90 w-full sm:w-auto">
                   <Link to="/matches">Make Predictions</Link>
                 </Button>
-                <Button asChild size="sm" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button asChild size="lg" variant="outline" className="bg-white text-ipl-blue hover:bg-white/90 w-full sm:w-auto">
                   <Link to="/leaderboard">View Leaderboard</Link>
                 </Button>
               </div>
             </div>
             
             {/* Right side - How It Works */}
-            <div className="md:w-1/2">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <h2 className="text-xl font-bold mb-3 text-center">How It Works</h2>
-                <div className="flex justify-between">
-                  <div className="text-center px-2">
-                    <div className="bg-white/20 h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-sm font-semibold">Predict</h3>
+            <div className="md:w-1/2 bg-white/10 rounded-lg p-4">
+              <h2 className="text-xl font-bold mb-3">How It Works</h2>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="bg-white/20 p-2 rounded-full">
+                    <Calendar className="h-5 w-5" />
                   </div>
-                  <div className="text-center px-2">
-                    <div className="bg-white/20 h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Trophy className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-sm font-semibold">Score</h3>
+                  <div>
+                    <h3 className="font-medium">Predict Matches</h3>
+                    <p className="text-sm text-white/80">Make your predictions before each match starts</p>
                   </div>
-                  <div className="text-center px-2">
-                    <div className="bg-white/20 h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-sm font-semibold">Compete</h3>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-white/20 p-2 rounded-full">
+                    <Trophy className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Earn Points</h3>
+                    <p className="text-sm text-white/80">Get points for each correct prediction</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-white/20 p-2 rounded-full">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Compete with Friends</h3>
+                    <p className="text-sm text-white/80">See how you rank against other predictors</p>
                   </div>
                 </div>
               </div>
@@ -91,7 +202,7 @@ const Index = () => {
           {/* Upcoming Matches Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Upcoming Matches</h2>
+              <h2 className="text-xl font-bold">Next 3 Matches</h2>
               <Button asChild variant="ghost" size="sm" className="flex items-center gap-1 text-sm">
                 <Link to="/matches">
                   View All <ArrowRight className="h-4 w-4" />
@@ -99,11 +210,20 @@ const Index = () => {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {upcomingMatches.map(match => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-            </div>
+            {matchesLoading ? (
+              <MatchesSkeleton />
+            ) : upcomingMatches.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {upcomingMatches.map(match => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <p className="text-gray-500">No upcoming matches found.</p>
+                <p className="text-sm text-gray-400 mt-1">Check back later or view all matches.</p>
+              </div>
+            )}
           </div>
           
           {/* Leaderboard Section */}
@@ -118,51 +238,32 @@ const Index = () => {
             </div>
             
             <div className="bg-white rounded-lg shadow-sm p-4">
-              {loading ? (
+              {loading || leaderboardLoading ? (
                 <LeaderboardSkeleton />
-              ) : (
-                <div className="space-y-2">
-                  {topPlayers.map((player, index) => (
-                    <div 
-                      key={player.userId} 
-                      className={`flex items-center gap-3 py-2 ${
-                        player.userId === currentUser?.uid ? "bg-blue-50 -mx-2 px-2 rounded" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-center h-6 w-6 bg-ipl-blue text-white rounded-full text-xs font-medium">
-                        {index + 1}
+              ) : leaderboardEntries.length > 0 ? (
+                <div className="space-y-1">
+                  {leaderboardEntries.map((entry, index) => (
+                    <div key={entry.userId} className="flex items-center py-2 border-b border-gray-100 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-ipl-blue/10 text-ipl-blue text-xs font-medium">
+                          {index + 1}
+                        </div>
+                        <div className="font-medium">{entry.displayName}</div>
                       </div>
-                      <div className="font-medium truncate">{player.userName}</div>
-                      <div className="ml-auto font-semibold text-ipl-blue">{player.points} pts</div>
+                      <div className="ml-auto font-semibold">{entry.totalPoints}</div>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No leaderboard data available yet.</p>
               )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Teams Section */}
-        <div className="mt-12">
-          <h2 className="text-xl font-bold mb-4">IPL 2025 Teams</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {teams.map(team => (
-              <div 
-                key={team.id} 
-                className="bg-white rounded-lg shadow-sm p-3 flex flex-col items-center"
-                style={{ borderTop: `4px solid ${team.primaryColor}` }}
-              >
-                <div className="h-16 w-16 flex items-center justify-center mb-2">
-                  <img 
-                    src={team.logo} 
-                    alt={team.name} 
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                <h3 className="font-semibold text-center">{team.name}</h3>
-                <p className="text-xs text-gray-500 text-center">{team.shortName}</p>
+              
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link to="/leaderboard">View Full Leaderboard</Link>
+                </Button>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
