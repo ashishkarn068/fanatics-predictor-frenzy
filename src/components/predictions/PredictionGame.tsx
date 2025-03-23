@@ -163,30 +163,30 @@ export default function PredictionGame({
       // Update the isWithinPredictionWindow state using the new function
       setIsWithinPredictionWindow(isPredictionAllowed(match));
       
-      // Check if match has started or ended to lock predictions
-      const matchDate = new Date(match.date);
-      const now = new Date();
-      
-      if (matchDate <= now || match.status === "completed") {
-        setIsPredictionLocked(true);
+    // Check if match has started or ended to lock predictions
+    const matchDate = new Date(match.date);
+    const now = new Date();
+    
+    if (matchDate <= now || match.status === "completed") {
+      setIsPredictionLocked(true);
+    }
+    
+    // Fetch questions and user's existing answers
+    const fetchQuestionsAndAnswers = async () => {
+      if (!match.id) {
+        setLoadingQuestions(false);
+        return;
       }
       
-      // Fetch questions and user's existing answers
-      const fetchQuestionsAndAnswers = async () => {
-        if (!match.id) {
-          setLoadingQuestions(false);
-          return;
-        }
+      try {
+        setLoadingQuestions(true);
         
-        try {
-          setLoadingQuestions(true);
-          
-          // Fetch standard questions from Firestore
-          const questionsRef = collection(db, "questions");
+        // Fetch standard questions from Firestore
+        const questionsRef = collection(db, "questions");
           const questionsQuery = query(questionsRef, where("isActive", "==", true));
           const questionsSnapshot = await getDocs(questionsQuery);
-          const fetchedQuestions: Question[] = [];
-          
+        const fetchedQuestions: Question[] = [];
+        
           console.log('-------- DEBUG: Fetching questions --------');
           
           // Create a map to track question types to avoid duplicates
@@ -252,19 +252,19 @@ export default function PredictionGame({
             setupAnswersListener(match.id, fetchedQuestions);
           } else {
             setLoadingQuestions(false);
-          }
-        } catch (error) {
-          console.error("Error fetching questions and answers:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load prediction questions. Please try again.",
-            variant: "destructive",
-          });
-          setLoadingQuestions(false);
         }
-      };
-      
-      fetchQuestionsAndAnswers();
+      } catch (error) {
+        console.error("Error fetching questions and answers:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load prediction questions. Please try again.",
+          variant: "destructive",
+        });
+        setLoadingQuestions(false);
+      }
+    };
+    
+    fetchQuestionsAndAnswers();
     }
   }, [match, user, toast]);
 
@@ -843,15 +843,15 @@ export default function PredictionGame({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
-      
-      {isPredictionLocked ? (
-        <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-          <p className="text-yellow-800 dark:text-yellow-200">
-            Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
-            {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
+        
+        {isPredictionLocked ? (
+          <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
+              {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
+            </p>
+          </div>
       ) : !isWithinPredictionWindow ? (
         <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
           <p className="text-yellow-800 dark:text-yellow-200">
@@ -863,46 +863,46 @@ export default function PredictionGame({
         <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
           <p className="text-blue-800 dark:text-blue-200">
             You've already submitted predictions for this match. Your predictions are displayed below and cannot be modified.
-          </p>
-        </div>
-      ) : null}
-      
-      {!user ? (
-        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
-          <p className="text-blue-800 dark:text-blue-200">
-            Please sign in to make predictions for this match.
-          </p>
-        </div>
-      ) : null}
-      
-      {/* Questions */}
-      <div className="space-y-6">
-        {questions.map(question => {
-          // Find user's answer for this question
-          const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
-          
-          return (
-            <Card key={question.id}>
-              <CardHeader>
-                <CardTitle>{question.text}</CardTitle>
+            </p>
+          </div>
+        ) : null}
+        
+        {!user ? (
+          <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
+            <p className="text-blue-800 dark:text-blue-200">
+              Please sign in to make predictions for this match.
+            </p>
+          </div>
+        ) : null}
+        
+        {/* Questions */}
+        <div className="space-y-6">
+          {questions.map(question => {
+            // Find user's answer for this question
+            const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
+            
+            return (
+              <Card key={question.id}>
+                <CardHeader>
+                  <CardTitle>{question.text}</CardTitle>
                 <CardDescription>
                   Worth {question.points} points
                   {question.negativePoints ? ` | -${question.negativePoints} points for incorrect answers` : ''}
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </CardHeader>
+                <CardContent>
                 {renderQuestionInput(question)}
                 {question.type === 'totalSixes' && !userAnswer && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-500">
                       If no options appear above, please try refreshing the page.
                     </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                        </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
       
       {!isPredictionLocked && isWithinPredictionWindow && !hasPredicted && user && (
