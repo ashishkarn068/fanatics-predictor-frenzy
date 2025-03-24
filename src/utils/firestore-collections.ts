@@ -1301,23 +1301,25 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
           }
         }
         else if (questionType === 'highestTotal') {
-          // For "Will total exceed X?" questions
+          // For "Will total exceed 350?" questions
           let actualExceeded = false;
           
-          // Handle different formats of the correct answer
-          if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
-            const actualTotal = parseInt(correctAnswer?.toString() || '0');
-            const defaultThreshold = 350;
-            actualExceeded = actualTotal > defaultThreshold;
-          } else if (typeof correctAnswer === 'string') {
-            const answerLower = correctAnswer.toLowerCase();
-            actualExceeded = answerLower === 'yes' || answerLower === 'true';
-          }
+          // Calculate total match runs from team scores
+          const team1Runs = parseInt(result.team1Score?.split('/')[0] || '0');
+          const team2Runs = parseInt(result.team2Score?.split('/')[0] || '0');
+          const totalMatchRuns = team1Runs + team2Runs;
+          
+          // Check if total runs exceed 350
+          const defaultThreshold = 350;
+          actualExceeded = totalMatchRuns > defaultThreshold;
           
           const userPrediction = userAnswer.toLowerCase();
           const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
           
           isCorrect = userPredictedExceeded === actualExceeded;
+          
+          // Log for debugging
+          console.log(`Evaluating match total: Team1: ${team1Runs}, Team2: ${team2Runs}, Total: ${totalMatchRuns}, Exceeded 350: ${actualExceeded}, User predicted exceeded: ${userPredictedExceeded}, isCorrect: ${isCorrect}`);
         } 
         else {
           // For any other question type, use simple exact match
