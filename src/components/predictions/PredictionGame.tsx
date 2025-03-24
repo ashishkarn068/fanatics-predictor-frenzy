@@ -920,33 +920,16 @@ export default function PredictionGame({
     <div className="space-y-6">
         <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
         
-        {new Date(match.date) <= new Date() ? (
-          <div className="bg-red-100 dark:bg-red-900 p-4 rounded-md mb-6">
-            <p className="text-red-800 dark:text-red-200 font-medium">
-              This game has ended. You cannot make predictions.
-            </p>
+        {match.status === 'completed' && (
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <p className="text-lg text-gray-600">This game has ended. You cannot make predictions.</p>
           </div>
-        ) : isPredictionLocked ? (
-          <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
-              {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
-            </p>
+        )}
+        {match.status === 'live' && (
+          <div className="bg-red-50 rounded-lg p-4 mb-6">
+            <p className="text-lg text-red-600">Match is currently in progress. Predictions are closed.</p>
           </div>
-      ) : !isWithinPredictionWindow ? (
-        <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-          <p className="text-yellow-800 dark:text-yellow-200">
-            Predictions will open 24 hours before the match starts. 
-            Please check back later to submit your predictions.
-          </p>
-        </div>
-      ) : hasPredicted ? (
-        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
-          <p className="text-blue-800 dark:text-blue-200">
-            You've already submitted predictions for this match. Your predictions are displayed below and cannot be modified.
-            </p>
-          </div>
-        ) : null}
+        )}
         
         {!user ? (
           <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">

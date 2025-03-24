@@ -233,8 +233,29 @@ export const updateUser = async (userId: string, userData: Partial<User>): Promi
 
 // Helper function to check and update match status based on date
 const syncMatchStatusWithDate = (match: Match): Match => {
-  // Skip if match is already completed or live
-  if (match.status === 'completed' || match.status === 'live') {
+  // If match has results, it should be completed regardless of time
+  if (match.result) {
+    if (match.status !== 'completed') {
+      console.log(`Auto-updating match ${match.id} status to 'completed' because results are present`);
+      
+      // Create a new match object with updated status
+      const updatedMatch = {
+        ...match,
+        status: 'completed' as 'completed'
+      };
+      
+      // Try to update in Firestore (don't await to avoid blocking)
+      updateMatch(match.id, { status: 'completed' })
+        .then(() => console.log(`Successfully updated match ${match.id} status to 'completed' in database`))
+        .catch(error => console.error(`Failed to update match ${match.id} status:`, error));
+      
+      return updatedMatch;
+    }
+    return match;
+  }
+  
+  // Skip if match is already completed
+  if (match.status === 'completed') {
     return match;
   }
   
@@ -256,9 +277,30 @@ const syncMatchStatusWithDate = (match: Match): Match => {
   
   const now = new Date();
   
-  // If match time has passed and status is still 'upcoming', update it to 'completed'
-  if (matchDate <= now && match.status === 'upcoming') {
-    console.log(`Auto-updating match ${match.id} status to 'completed' because date has passed`);
+  // Calculate 5 hours after match time
+  const fiveHoursAfterMatch = new Date(matchDate.getTime() + (5 * 60 * 60 * 1000));
+  
+  // If match time has passed but it's not 5 hours after yet, set to 'live'
+  if (matchDate <= now && now < fiveHoursAfterMatch && match.status === 'upcoming') {
+    console.log(`Auto-updating match ${match.id} status to 'live' because match time has passed`);
+    
+    // Create a new match object with updated status
+    const updatedMatch = {
+      ...match,
+      status: 'live' as 'live'
+    };
+    
+    // Try to update in Firestore (don't await to avoid blocking)
+    updateMatch(match.id, { status: 'live' })
+      .then(() => console.log(`Successfully updated match ${match.id} status to 'live' in database`))
+      .catch(error => console.error(`Failed to update match ${match.id} status:`, error));
+    
+    return updatedMatch;
+  }
+  
+  // If it's more than 5 hours after match time and status is still 'live' or 'upcoming', update to 'completed'
+  if (now >= fiveHoursAfterMatch && (match.status === 'live' || match.status === 'upcoming')) {
+    console.log(`Auto-updating match ${match.id} status to 'completed' because it's 5 hours after match time`);
     
     // Create a new match object with updated status
     const updatedMatch = {
@@ -1422,10 +1464,11 @@ export const updateMatchWithResults = async (
   resultData: Omit<MatchResult, 'id' | 'matchId' | 'createdBy' | 'createdAt' | 'updatedAt'>
 ): Promise<void> => {
   try {
-    // First update the match
+    // First update the match - always set status to completed when results are added
     const matchDocRef = doc(db, COLLECTIONS.MATCHES, matchId);
     await updateDoc(matchDocRef, {
       ...matchData,
+      status: 'completed', // Force status to completed when results are added
       ...updateTimestamp()
     });
     

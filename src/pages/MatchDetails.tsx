@@ -533,6 +533,11 @@ const MatchDetails = () => {
               <p className="text-lg text-gray-600">This match has ended. No more predictions can be made.</p>
               <p className="text-gray-500 mt-2">You can still view the leaderboard and scoring system below.</p>
             </div>
+          ) : match.status === 'live' ? (
+            <div className="bg-yellow-50 rounded-lg p-6 text-center mb-6">
+              <p className="text-lg text-yellow-600">Match is in progress. Predictions are now closed.</p>
+              <p className="text-yellow-500 mt-2">Stay tuned for results and check the leaderboard once the match ends.</p>
+            </div>
           ) : null}
           
           <MatchPredictions 
