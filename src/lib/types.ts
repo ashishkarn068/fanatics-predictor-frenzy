@@ -15,6 +15,12 @@ export interface Player {
   image?: string;
 }
 
+export interface MatchResult {
+  winner: string;
+  team1Score?: string;
+  team2Score?: string;
+}
+
 export interface Match {
   id: string;
   team1Id: string; // Can be a team ID or 'tbd' for playoff matches
@@ -22,7 +28,7 @@ export interface Match {
   venue: string;
   date: string; // ISO string
   status: 'upcoming' | 'live' | 'completed';
-  result?: string;
+  result?: MatchResult;
   name?: string; // Optional name for playoff matches (Qualifier 1, Eliminator, etc.)
 }
 

@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where } from "firebase/firestore";
 import { COLLECTIONS } from "@/utils/firestore-collections";
 import { COLLECTIONS as LIB_COLLECTIONS } from "@/lib/firestore";
-import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw } from "lucide-react";
+import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -417,59 +417,91 @@ const MatchLeaderboard = () => {
             Match Leaderboard
           </h1>
           
-          {/* Match details */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold mb-2">
-                  {match.team1} vs {match.team2}
-                </h2>
+          {/* Match Header */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+                <h1 className="text-2xl font-bold mb-1">{match.team1} vs {match.team2}</h1>
                 <p className="text-gray-600">{match.venue}</p>
                 <p className="text-gray-600">{formatMatchDate(match.date)}</p>
               </div>
-              
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 flex items-center justify-center">
-                    <img 
-                      src={getTeamLogoUrl(match.team1)} 
-                      alt={match.team1} 
-                      className="max-h-full max-w-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "/images/teams/default.png";
-                      }}
-                    />
-                  </div>
+              <Badge variant="outline" className="text-gray-500">
+                {match.status || 'Status not available'}
+              </Badge>
+            </div>
+
+            {/* Teams and Score Display */}
+            <div className="flex flex-col md:flex-row items-center justify-center mt-8 space-y-6 md:space-y-0">
+              <div className="flex flex-col items-center text-center md:w-1/3">
+                <div className="h-24 w-24 flex items-center justify-center">
+                  <img 
+                    src={getTeamLogoUrl(match.team1)} 
+                    alt={match.team1} 
+                    className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/images/teams/default.png";
+                    }}
+                  />
                 </div>
-                
-                <div className="text-2xl font-bold">VS</div>
-                
-                <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 flex items-center justify-center">
-                    <img 
-                      src={getTeamLogoUrl(match.team2)} 
-                      alt={match.team2} 
-                      className="max-h-full max-w-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "/images/teams/default.png";
-                      }}
-                    />
-                  </div>
-                </div>
+                <h2 className="text-xl font-bold">{match.team1}</h2>
               </div>
-              
-              <div>
-                {match.status === 'completed' ? (
-                  <Badge variant="default" className="bg-green-600">Completed</Badge>
-                ) : match.status === 'live' ? (
-                  <Badge variant="default" className="bg-red-600 animate-pulse">Live</Badge>
-                ) : (
-                  <Badge variant="outline">Upcoming</Badge>
+
+              <div className="flex flex-col items-center justify-center md:w-1/3">
+                <div className="text-3xl font-bold mb-2">VS</div>
+                {match.status === 'completed' && match.result && (
+                  <div className="flex flex-col items-center space-y-4 mt-8">
+                    {/* Score Display with Trophy */}
+                    <div className="relative w-full max-w-xl">
+                      {/* Trophy Container - Positioned above scores */}
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                        <Trophy className="w-8 h-8 text-yellow-500 animate-bounce" />
+                      </div>
+                      
+                      {/* Score Container */}
+                      <div className="flex items-center justify-between w-full bg-gradient-to-r from-blue-50 via-white to-blue-50 rounded-lg p-6 shadow-md">
+                        {/* Team 1 Score */}
+                        <div className={`text-2xl font-bold ${match.result.winner === match.team1 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                          {match.result.team1Score || '0'}
+                        </div>
+                        
+                        {/* VS Separator */}
+                        <div className="text-xl font-medium text-gray-500 mx-4">
+                          vs
+                        </div>
+                        
+                        {/* Team 2 Score */}
+                        <div className={`text-2xl font-bold ${match.result.winner === match.team2 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                          {match.result.team2Score || '0'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Winner Announcement */}
+                    <div className="bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 px-6 py-3 rounded-full border border-yellow-200 shadow-sm">
+                      <span className="text-lg font-semibold text-yellow-800">
+                        {match.result.winner} won the match!
+                      </span>
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              <div className="flex flex-col items-center text-center md:w-1/3">
+                <div className="h-24 w-24 flex items-center justify-center">
+                  <img 
+                    src={getTeamLogoUrl(match.team2)} 
+                    alt={match.team2} 
+                    className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/images/teams/default.png";
+                    }}
+                  />
+                </div>
+                <h2 className="text-xl font-bold">{match.team2}</h2>
               </div>
             </div>
           </div>

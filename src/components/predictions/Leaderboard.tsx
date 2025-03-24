@@ -478,10 +478,10 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             totalPredictions: userData.totalPredictions || 0,
             accuracy: userData.accuracy || 0,
             streak: 0,
-            trend: "neutral"
-          });
+          trend: "neutral"
         });
-
+      });
+      
         // Debug log for final entries
         console.log('Final Leaderboard:', {
           totalEntries: entries.length,
@@ -497,8 +497,8 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
       setLoading(false);
       
       // Fallback to users collection if global leaderboard fails
-      try {
-        const usersRef = collection(db, "users");
+    try {
+      const usersRef = collection(db, "users");
         const usersQuery = query(
           usersRef,
           orderBy("totalPoints", "desc"),
@@ -529,10 +529,10 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
               totalPredictions: userData.totalPredictions || 0,
               accuracy: userData.overallAccuracy || 0,
               streak: userData.longestStreak || 0,
-              trend: "neutral"
-            });
-          });
-          
+          trend: "neutral"
+        });
+      });
+      
           // Debug log for final fallback entries
           console.log('Final Fallback Leaderboard:', {
             totalEntries: entries.length,

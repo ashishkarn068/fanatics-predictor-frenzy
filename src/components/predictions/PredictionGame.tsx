@@ -1005,23 +1005,23 @@ export default function PredictionGame({
           {hasPredicted && (
             <>
               <ul className="space-y-2 mb-4">
-                {userAnswers.map(answer => {
-                  const question = questions.find(q => q.id === answer.questionId);
-                  if (!question) return null;
-                  
-                  let displayAnswer = answer.answer;
-                  
-                  // Format the answer for display
-                  if (question.type === 'winner') {
-                    displayAnswer = answer.answer === match.team1Id 
+            {userAnswers.map(answer => {
+              const question = questions.find(q => q.id === answer.questionId);
+              if (!question) return null;
+              
+              let displayAnswer = answer.answer;
+              
+              // Format the answer for display
+              if (question.type === 'winner') {
+                displayAnswer = answer.answer === match.team1Id 
                       ? (team1?.name || match.team1Id) 
                       : (team2?.name || match.team2Id);
                   } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
-                    if (answer.answer === 'any-team1') {
+                if (answer.answer === 'any-team1') {
                       displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
-                    } else if (answer.answer === 'any-team2') {
+                } else if (answer.answer === 'any-team2') {
                       displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
-                    } else {
+                } else {
                       // Just display the player name without team name
                       displayAnswer = answer.answer;
                     }
@@ -1034,32 +1034,32 @@ export default function PredictionGame({
                       displayAnswer = team1?.name || match.team1Id;
                     } else if (answer.answer === match.team2Id) {
                       displayAnswer = team2?.name || match.team2Id;
-                    }
-                  } else if (question.options) {
-                    const option = question.options.find(o => o.value === answer.answer);
-                    if (option) {
-                      displayAnswer = option.label;
-                    }
-                  }
-                  
-                  return (
-                    <li key={answer.id} className="flex flex-col">
-                      <span className="font-medium">{question.text}</span>
-                      <span className="text-sm">Your answer: {displayAnswer}</span>
-                      {answer.isCorrect !== undefined && (
-                        <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                }
+              } else if (question.options) {
+                const option = question.options.find(o => o.value === answer.answer);
+                if (option) {
+                  displayAnswer = option.label;
+                }
+              }
+              
+              return (
+                <li key={answer.id} className="flex flex-col">
+                  <span className="font-medium">{question.text}</span>
+                  <span className="text-sm">Your answer: {displayAnswer}</span>
+                  {answer.isCorrect !== undefined && (
+                    <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
                           {answer.isCorrect 
                             ? `Correct (+${answer.pointsEarned || question.points} points)`
                             : answer.pointsEarned < 0
                               ? `Incorrect (${answer.pointsEarned} points)`
                               : 'Incorrect'
                           }
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
               
               {/* Add Reset Button */}
               <div className="mt-4">

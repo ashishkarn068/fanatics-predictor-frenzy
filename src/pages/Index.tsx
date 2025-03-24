@@ -37,9 +37,14 @@ const Index = () => {
         setMatchesLoading(true);
         const matchesRef = collection(db, COLLECTIONS.MATCHES);
         
-        // Get the next 3 matches by date, regardless of status
+        // Get today's date at midnight (start of day)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get the next 3 upcoming matches from today onwards
         const q = query(
           matchesRef,
+          where("date", ">=", today),
           orderBy("date", "asc"),
           limit(3)
         );
@@ -48,10 +53,17 @@ const Index = () => {
         const matches: Match[] = [];
         
         querySnapshot.forEach((doc) => {
-          matches.push({ id: doc.id, ...doc.data() } as Match);
+          const data = doc.data();
+          // Convert Timestamp to string if needed
+          const date = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
+          matches.push({ 
+            id: doc.id, 
+            ...data,
+            date 
+          } as Match);
         });
         
-        console.log("Fetched matches:", matches.length);
+        console.log("Fetched upcoming matches from today:", matches.length);
         setUpcomingMatches(matches);
       } catch (error) {
         console.error("Error fetching upcoming matches:", error);
