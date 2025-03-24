@@ -67,7 +67,7 @@ export default function Footer() {
             </h3>
             <div className="mt-1">
               <a 
-                href="https://github.com/ashishkarns/fanatics-predictor-frenzy" 
+                href="https://github.com/ashishkarn068/fanatics-predictor-frenzy" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="inline-flex items-center space-x-1 text-sm text-white/80 hover:text-white transition-colors"

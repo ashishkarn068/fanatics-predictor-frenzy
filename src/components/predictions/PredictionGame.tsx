@@ -1063,19 +1063,23 @@ export default function PredictionGame({
               
               {/* Add Reset Button */}
               <div className="mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetPredictions}
-                  disabled={isSubmitting}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  <RefreshCw className="mr-1 h-3 w-3" /> 
-                  Reset Predictions
-                </Button>
-                <p className="text-xs text-gray-500 mt-1">
-                  You can reset your predictions until 5 minutes before the match starts.
-                </p>
+                {!isPredictionLocked && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetPredictions}
+                    disabled={isSubmitting}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" /> 
+                    Reset Predictions
+                  </Button>
+                )}
+                {!isPredictionLocked && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    You can reset your predictions until 5 minutes before the match starts.
+                  </p>
+                )}
               </div>
             </>
           )}
