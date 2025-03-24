@@ -80,14 +80,16 @@ const Leaderboard = () => {
         // Convert to array and sort by points
         const entries = leaderboardSnapshot.docs.map(doc => {
           const data = doc.data();
+          const totalAnswered = data.totalAnsweredQuestions || data.totalPredictions || 0;
+          const correctPreds = data.correctPredictions || 0;
           return {
             userId: data.userId,
             displayName: data.displayName,
             photoURL: data.photoURL,
             points: data.totalPoints || 0,
-            correctPredictions: data.correctPredictions || 0,
-            totalPredictions: data.totalPredictions || 0,
-            accuracy: data.accuracy || 0,
+            correctPredictions: correctPreds,
+            totalPredictions: totalAnswered,
+            accuracy: totalAnswered > 0 ? Math.round((correctPreds / totalAnswered) * 100) : null,
             matchesPlayed: data.matchesPlayed || 0
           };
         });
@@ -283,7 +285,7 @@ const Leaderboard = () => {
                                 {entry.points}
                               </td>
                               <td className="px-4 py-4 text-right hidden md:table-cell">
-                                {entry.accuracy ? `${Math.round(entry.accuracy)}%` : 'N/A'}
+                                {entry.accuracy !== null ? `${entry.accuracy}%` : 'N/A'}
                               </td>
                             </tr>
                           ))}

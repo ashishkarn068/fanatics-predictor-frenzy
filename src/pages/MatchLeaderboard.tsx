@@ -250,13 +250,15 @@ const MatchLeaderboard = () => {
           }
           
           // Check if this prediction has been evaluated
-          if (prediction.isCorrect === true) {
-            entry.correctPredictions++;
+          if (prediction.isCorrect !== undefined) {
+            if (prediction.isCorrect) {
+              entry.correctPredictions++;
+            }
             const pointsEarned = prediction.pointsEarned || 0;
-            entry.totalPoints += pointsEarned;
+            entry.totalPoints += pointsEarned; // This will add positive points and subtract negative points
             
-            console.log(`Correct prediction for user ${userId}, question ${questionId}: ${pointsEarned} points`);
-          } else if (prediction.isCorrect === undefined && matchData.status === 'completed') {
+            console.log(`Prediction for user ${userId}, question ${questionId}: IsCorrect: ${prediction.isCorrect}, Points: ${pointsEarned}`);
+          } else if (matchData.status === 'completed') {
             pendingCount++;
             console.log(`Pending evaluation for user ${userId}, question ${questionId}`);
           }
@@ -609,8 +611,14 @@ const MatchLeaderboard = () => {
                           <td className="p-4 w-5/12">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={entry.photoURL || undefined} />
-                                <AvatarFallback>{getAvatarFallback(entry.displayName)}</AvatarFallback>
+                                <AvatarImage 
+                                  src={entry.photoURL || undefined} 
+                                  alt={entry.displayName}
+                                  referrerPolicy="no-referrer"
+                                />
+                                <AvatarFallback>
+                                  {getAvatarFallback(entry.displayName)}
+                                </AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{entry.displayName}</span>
                               {currentUser?.uid === entry.userId && (
@@ -619,12 +627,14 @@ const MatchLeaderboard = () => {
                             </div>
                           </td>
                           <td className="p-4 w-3/12 text-right whitespace-nowrap">
-                            {entry.totalPoints > 0 ? (
-                              <span className="text-green-600 font-medium">{entry.totalPoints}</span>
-                            ) : match.status !== 'completed' ? (
+                            {match.status !== 'completed' ? (
                               <span className="text-gray-500 font-medium">Pending</span>
                             ) : hasPendingEvaluations ? (
                               <span className="text-amber-600 font-medium">Evaluating</span>
+                            ) : entry.totalPoints > 0 ? (
+                              <span className="text-green-600 font-medium">+{entry.totalPoints}</span>
+                            ) : entry.totalPoints < 0 ? (
+                              <span className="text-red-600 font-medium">{entry.totalPoints}</span>
                             ) : (
                               <span className="text-gray-500 font-medium">0</span>
                             )}
@@ -709,12 +719,14 @@ const MatchLeaderboard = () => {
                                         <tr className="bg-gray-50 border-t border-gray-200">
                                           <td colSpan={3} className="p-3 text-right font-bold">Total Points</td>
                                           <td className="p-3 text-right font-bold w-1/12">
-                                            {entry.totalPoints > 0 ? (
-                                              <span className="text-green-600">{entry.totalPoints}</span>
-                                            ) : match.status !== 'completed' ? (
-                                              <span className="text-gray-500">Pending</span>
+                                            {match.status !== 'completed' ? (
+                                              <span className="text-gray-500 font-medium">Pending</span>
                                             ) : hasPendingEvaluations ? (
-                                              <span className="text-amber-600">Evaluating</span>
+                                              <span className="text-amber-600 font-medium">Evaluating</span>
+                                            ) : entry.totalPoints > 0 ? (
+                                              <span className="text-green-600">{entry.totalPoints}</span>
+                                            ) : entry.totalPoints < 0 ? (
+                                              <span className="text-red-600">{entry.totalPoints}</span>
                                             ) : (
                                               <span className="text-gray-500">0</span>
                                             )}

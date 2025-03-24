@@ -144,7 +144,11 @@ const Navbar = () => {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center space-x-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={currentUser?.photoURL || undefined} alt={currentUser?.displayName || 'User'} />
+                          <AvatarImage 
+                            src={currentUser?.photoURL || undefined} 
+                            alt={currentUser?.displayName || 'User'} 
+                            referrerPolicy="no-referrer"
+                          />
                           <AvatarFallback className="bg-ipl-blue text-white">
                             {currentUser?.displayName ? currentUser.displayName.substring(0, 2).toUpperCase() : 'U'}
                           </AvatarFallback>

@@ -1216,80 +1216,79 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
       console.log(`User answer: ${userAnswer}, Correct answer: ${correctAnswer}`);
       
       let isCorrect = false;
+      let pointsEarned = 0;
       
-      // Evaluate based on question type with simplified logic
-      if (questionType === 'winner') {
-        // Simple exact match for winner
-        isCorrect = userAnswer === correctAnswer;
-      } 
-      else if (questionType === 'topBatsman') {
-        // Normalize player names for comparison
-        const standardizedUserAnswer = standardizePlayerName(userAnswer);
-        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
-        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-      } 
-      else if (questionType === 'topBowler') {
-        // Normalize player names for comparison
-        const standardizedUserAnswer = standardizePlayerName(userAnswer);
-        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
-        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-      } 
-      else if (questionType === 'moreSixes') {
-        // Simple exact match for team with more sixes
-        isCorrect = userAnswer === correctAnswer;
-      }
-      else if (questionType === 'totalSixes') {
-        // Handle range-based sixes evaluation
-        // The correct answer should be the actual number of sixes
-        const actualSixes = parseInt(correctAnswer?.toString() || '0');
-        
-        // User answer is in the format "X-Y" (e.g., "12-17")
-        const userRange = userAnswer.split('-');
-        if (userRange.length === 2) {
-          const minSixes = parseInt(userRange[0]);
-          const maxSixes = parseInt(userRange[1]);
-          
-          // Check if the actual number falls within the user's selected range
-          isCorrect = actualSixes >= minSixes && actualSixes <= maxSixes;
-          
-          console.log(`Total sixes evaluation: User predicted ${userAnswer} range, Actual sixes: ${actualSixes}, IsCorrect: ${isCorrect}`);
-        } else {
-          console.log(`Invalid total sixes answer format: ${userAnswer}`);
-          isCorrect = false;
+      // Only evaluate if user provided an answer
+      if (userAnswer) {
+        // Evaluate based on question type with simplified logic
+        if (questionType === 'winner') {
+          // Simple exact match for winner
+          isCorrect = userAnswer === correctAnswer;
+        } 
+        else if (questionType === 'topBatsman') {
+          // Normalize player names for comparison
+          const standardizedUserAnswer = standardizePlayerName(userAnswer);
+          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
+        } 
+        else if (questionType === 'topBowler') {
+          // Normalize player names for comparison
+          const standardizedUserAnswer = standardizePlayerName(userAnswer);
+          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
         }
-      }
-      else if (questionType === 'highestTotal') {
-        // For "Will total exceed X?" questions
-        // Parse the total from result - this might be a number OR a yes/no answer
-        let actualExceeded = false;
-        
-        // Handle different formats of the correct answer
-        if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
-          // If the correct answer is a number (from admin input)
-          const actualTotal = parseInt(correctAnswer?.toString() || '0');
-          const defaultThreshold = 350;
-          actualExceeded = actualTotal > defaultThreshold;
-        } else if (typeof correctAnswer === 'string') {
-          // If the correct answer is already a string like 'yes'/'no' or 'true'/'false'
-          const answerLower = correctAnswer.toLowerCase();
-          actualExceeded = answerLower === 'yes' || answerLower === 'true';
+        else if (questionType === 'moreSixes') {
+          // Simple exact match for team with more sixes
+          isCorrect = userAnswer === correctAnswer;
+        }
+        else if (questionType === 'totalSixes') {
+          // Handle range-based sixes evaluation
+          const actualSixes = parseInt(correctAnswer?.toString() || '0');
+          
+          // User answer is in the format "X-Y" (e.g., "12-17")
+          const userRange = userAnswer.split('-');
+          if (userRange.length === 2) {
+            const minSixes = parseInt(userRange[0]);
+            const maxSixes = parseInt(userRange[1]);
+            
+            // Check if the actual number falls within the user's selected range
+            isCorrect = actualSixes >= minSixes && actualSixes <= maxSixes;
+          } else {
+            console.log(`Invalid total sixes answer format: ${userAnswer}`);
+            isCorrect = false;
+          }
+        }
+        else if (questionType === 'highestTotal') {
+          // For "Will total exceed X?" questions
+          let actualExceeded = false;
+          
+          // Handle different formats of the correct answer
+          if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
+            const actualTotal = parseInt(correctAnswer?.toString() || '0');
+            const defaultThreshold = 350;
+            actualExceeded = actualTotal > defaultThreshold;
+          } else if (typeof correctAnswer === 'string') {
+            const answerLower = correctAnswer.toLowerCase();
+            actualExceeded = answerLower === 'yes' || answerLower === 'true';
+          }
+          
+          const userPrediction = userAnswer.toLowerCase();
+          const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
+          
+          isCorrect = userPredictedExceeded === actualExceeded;
+        } 
+        else {
+          // For any other question type, use simple exact match
+          isCorrect = userAnswer === correctAnswer;
         }
         
-        // Evaluate based on user's yes/no answer
-        const userPrediction = userAnswer.toLowerCase();
-        const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
-        
-        isCorrect = userPredictedExceeded === actualExceeded;
-        
-        console.log(`Highest total evaluation: User predicted exceed: ${userPredictedExceeded}, Actual exceeded: ${actualExceeded}, IsCorrect: ${isCorrect}`);
-      } 
-      else {
-        // For any other question type, use simple exact match
-        isCorrect = userAnswer === correctAnswer;
+        // Calculate points - award positive points if correct, deduct negative points if wrong
+        pointsEarned = isCorrect ? questionPoints : -negativePoints;
+      } else {
+        // If no answer provided, set isCorrect to false but don't deduct points
+        isCorrect = false;
+        pointsEarned = 0;
       }
-      
-      // Calculate points - award positive points if correct, deduct negative points if wrong
-      const pointsEarned = isCorrect ? questionPoints : -negativePoints; // negativePoints is stored as a positive value, so we add the negative sign here
       
       // Update the prediction answer document
       batch.update(docSnapshot.ref, {
@@ -1302,7 +1301,7 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
       updateCount++;
       
       // Update user points
-      userPointsMap[userId].totalPoints += pointsEarned; // Add positive or negative points
+      userPointsMap[userId].totalPoints += pointsEarned;
       if (isCorrect) {
         userPointsMap[userId].correctPredictions++;
       }
@@ -1382,28 +1381,26 @@ const createMatchLeaderboard = async (
     const batch = writeBatch(db);
     
     for (const [userId, stats] of Object.entries(userPointsMap)) {
-      if (stats.totalPoints > 0) {
-        // Get user data
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          
-          // Create entry in the leaderboard entries subcollection
-          const entryRef = doc(db, 'leaderboards', leaderboardId, 'entries', userId);
-          
-          batch.set(entryRef, {
-            userId,
-            displayName: userData.displayName || 'Anonymous User',
-            photoURL: userData.photoURL,
-            points: stats.totalPoints,
-            correctPredictions: stats.correctPredictions,
-            totalPredictions: stats.totalPredictions,
-            accuracy: stats.totalPredictions > 0 
-              ? Math.round((stats.correctPredictions / stats.totalPredictions) * 100) 
-              : 0,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        }
+      // Get user data
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Create entry in the leaderboard entries subcollection
+        const entryRef = doc(db, 'leaderboards', leaderboardId, 'entries', userId);
+        
+        batch.set(entryRef, {
+          userId,
+          displayName: userData.displayName || 'Anonymous User',
+          photoURL: userData.photoURL,
+          points: stats.totalPoints,
+          correctPredictions: stats.correctPredictions,
+          totalPredictions: stats.totalPredictions,
+          accuracy: stats.totalPredictions > 0 
+            ? Math.round((stats.correctPredictions / stats.totalPredictions) * 100) 
+            : 0,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
       }
     }
     
@@ -1721,19 +1718,21 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
     // Calculate totals
     let totalPoints = 0;
     let correctPredictions = 0;
-    let totalPredictions = 0;
-    const matchesSet = new Set<string>();
+    let totalAnsweredQuestions = 0;
+    const matchesWithAnswers = new Set<string>();  // Track matches where user actually answered
     
     answersSnapshot.forEach((doc) => {
       const answer = doc.data();
-      totalPoints += answer.pointsEarned || 0;
-      if (answer.isCorrect) correctPredictions++;
-      totalPredictions++;
-      if (answer.matchId) matchesSet.add(answer.matchId);
+      if (answer.answer) {  // Only count if user actually submitted an answer
+        totalPoints += answer.pointsEarned || 0;
+        if (answer.isCorrect) correctPredictions++;
+        totalAnsweredQuestions++;
+        if (answer.matchId) matchesWithAnswers.add(answer.matchId);
+      }
     });
     
-    // Calculate accuracy
-    const accuracy = totalPredictions > 0 ? (correctPredictions / totalPredictions) * 100 : 0;
+    // Calculate accuracy only based on answered questions
+    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
     
     // Update or create global leaderboard entry
     const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
@@ -1743,10 +1742,10 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
       photoURL: userData.data()?.photoURL,
       totalPoints,
       correctPredictions,
-      totalPredictions,
+      totalPredictions: totalAnsweredQuestions,  // Only count answered questions
       accuracy,
       lastUpdated: serverTimestamp(),
-      matchesPlayed: matchesSet.size
+      matchesPlayed: matchesWithAnswers.size  // Only count matches where user answered at least one question
     }, { merge: true });
     
   } catch (error) {

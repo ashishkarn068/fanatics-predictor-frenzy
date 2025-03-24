@@ -32,6 +32,7 @@ import {
 import { ChevronDown, Trophy } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { COLLECTIONS } from "@/utils/firestore-collections";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LeaderboardProps {
   matchId?: string;
@@ -51,12 +52,22 @@ interface EnhancedLeaderboardEntry extends LeaderboardEntry {
 }
 
 export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<string>(matchId ? "match" : "season");
   const [leaderboard, setLeaderboard] = useState<EnhancedLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Map<string, {text: string, points: number}>>(new Map());
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+  // Add debug logging for currentUser
+  useEffect(() => {
+    console.log('Current User:', {
+      uid: currentUser?.uid,
+      displayName: currentUser?.displayName,
+      isAuthenticated: !!currentUser
+    });
+  }, [currentUser]);
 
   useEffect(() => {
       setLoading(true);
@@ -450,6 +461,13 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         snapshot.forEach((docSnapshot) => {
           const userData = docSnapshot.data();
           
+          // Debug log for each entry
+          console.log('Leaderboard Entry:', {
+            userId: userData.userId,
+            displayName: userData.displayName,
+            matchesCurrentUser: currentUser?.uid === userData.userId
+          });
+          
           entries.push({
             position: position++,
             userId: userData.userId,
@@ -459,11 +477,18 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             correctPredictions: userData.correctPredictions || 0,
             totalPredictions: userData.totalPredictions || 0,
             accuracy: userData.accuracy || 0,
-            streak: 0, // Not tracked in global leaderboard
-          trend: "neutral"
+            streak: 0,
+            trend: "neutral"
+          });
         });
-      });
-      
+
+        // Debug log for final entries
+        console.log('Final Leaderboard:', {
+          totalEntries: entries.length,
+          currentUserEntry: entries.find(e => e.userId === currentUser?.uid),
+          allUserIds: entries.map(e => e.userId)
+        });
+        
         setLeaderboard(entries);
         setLoading(false);
       });
@@ -472,8 +497,8 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
       setLoading(false);
       
       // Fallback to users collection if global leaderboard fails
-    try {
-      const usersRef = collection(db, "users");
+      try {
+        const usersRef = collection(db, "users");
         const usersQuery = query(
           usersRef,
           orderBy("totalPoints", "desc"),
@@ -487,6 +512,13 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             const userData = docSnapshot.data();
             const position = entries.length + 1;
             
+            // Debug log for fallback entries
+            console.log('Fallback Entry:', {
+              userId: userData.uid,
+              displayName: userData.displayName,
+              matchesCurrentUser: currentUser?.uid === userData.uid
+            });
+            
             entries.push({
               position,
               userId: userData.uid,
@@ -497,10 +529,17 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
               totalPredictions: userData.totalPredictions || 0,
               accuracy: userData.overallAccuracy || 0,
               streak: userData.longestStreak || 0,
-          trend: "neutral"
-        });
-      });
-      
+              trend: "neutral"
+            });
+          });
+          
+          // Debug log for final fallback entries
+          console.log('Final Fallback Leaderboard:', {
+            totalEntries: entries.length,
+            currentUserEntry: entries.find(e => e.userId === currentUser?.uid),
+            allUserIds: entries.map(e => e.userId)
+          });
+          
           setLeaderboard(entries);
           setLoading(false);
         });
@@ -607,12 +646,19 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                   
                   <div className="col-span-5 flex items-center space-x-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={entry.userAvatar} alt={entry.userName} />
+                      <AvatarImage 
+                        src={entry.userAvatar} 
+                        alt={entry.userName} 
+                        referrerPolicy="no-referrer"
+                      />
                       <AvatarFallback>
-                        {entry.userName.split(' ').map(n => n[0]).join('')}
+                        {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium truncate">{entry.userName}</span>
+                    {currentUser?.uid === entry.userId && (
+                      <Badge variant="outline" className="ml-2">You</Badge>
+                    )}
                     <ChevronDown className={`h-4 w-4 transition-transform ${expandedUser === entry.userId ? 'transform rotate-180' : ''}`} />
                   </div>
                   
@@ -633,7 +679,7 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                           : 'bg-gray-50 text-gray-700 border-gray-200'
                       }
                     `}>
-                      {entry.accuracy}%
+                      {Math.round(entry.accuracy)}%
                     </Badge>
                   </div>
                 </div>
@@ -741,12 +787,19 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             
             <div className="col-span-5 flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={entry.userAvatar} alt={entry.userName} />
+                <AvatarImage 
+                  src={entry.userAvatar} 
+                  alt={entry.userName} 
+                  referrerPolicy="no-referrer"
+                />
                 <AvatarFallback>
-                  {entry.userName.split(' ').map(n => n[0]).join('')}
+                  {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="font-medium truncate">{entry.userName}</span>
+              {currentUser?.uid === entry.userId && (
+                <Badge variant="outline" className="ml-2">You</Badge>
+              )}
             </div>
             
             <div className="col-span-2 text-right font-semibold">
@@ -766,7 +819,7 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                     : 'bg-gray-50 text-gray-700 border-gray-200'
                 }
               `}>
-                {entry.accuracy}%
+                {Math.round(entry.accuracy)}%
               </Badge>
             </div>
           </div>
