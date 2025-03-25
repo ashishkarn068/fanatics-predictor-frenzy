@@ -743,21 +743,21 @@ const MatchLeaderboard = () => {
                           onClick={() => toggleUserExpand(entry.userId)}
                         >
                           <td className="p-4 w-1/12 whitespace-nowrap">
-                            {index === 0 ? (
+                            {((currentPage - 1) * PAGE_SIZE + index) === 0 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-800 rounded-full">
                                 <Trophy className="h-4 w-4" />
                               </span>
-                            ) : index === 1 ? (
+                            ) : ((currentPage - 1) * PAGE_SIZE + index) === 1 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-800 rounded-full">
                                 2
                               </span>
-                            ) : index === 2 ? (
+                            ) : ((currentPage - 1) * PAGE_SIZE + index) === 2 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-amber-100 text-amber-800 rounded-full">
                                 3
                               </span>
                             ) : (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 text-gray-600 rounded-full">
-                                {index + 1}
+                                {(currentPage - 1) * PAGE_SIZE + index + 1}
                               </span>
                             )}
                           </td>
