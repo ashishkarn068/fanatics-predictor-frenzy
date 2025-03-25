@@ -31,6 +31,7 @@ import { standardizePlayerName } from '@/utils/firestore-collections';
 import { isMatchWithinPredictionWindow, isPredictionAllowed } from '@/lib/utils';
 import { resetPredictions, canResetPredictions } from "@/utils/firestore-collections";
 import { cn } from "@/lib/utils";
+import { getTeamLogoUrl } from "@/utils/team-utils";
 
 interface PredictionGameProps {
   match: Match;
@@ -345,7 +346,7 @@ export default function PredictionGame({
     // For player-based questions (topBatsman, topBowler), standardize the player name format
     if (question.type === 'topBatsman' || question.type === 'topBowler') {
       // Don't standardize special values
-      if (!value.startsWith('any-') && !value.startsWith('no-')) {
+      if (!value.startsWith('no-')) {
         const originalAnswer = value;
         const standardizedAnswer = standardizePlayerName(value);
         console.log(`Storing standardized player for ${question.type}:`);
@@ -677,7 +678,7 @@ export default function PredictionGame({
     if (question.type === 'topBatsman' || question.type === 'topBowler') {
       // Get filtered players based on question type
       const filteredPlayers = question.type === 'topBatsman' ? getBatsmen() : getBowlers();
-
+      
       return (
         <Select 
           value={answers[question.id] || userAnswer} 
@@ -688,28 +689,60 @@ export default function PredictionGame({
             <SelectValue placeholder="Select a player" />
           </SelectTrigger>
           <SelectContent>
-            {/* Team 1 Players */}
+            {/* Team 1 Players Header */}
             <SelectItem value="team1-header" disabled className="font-bold text-primary">
-              {team1?.name || match.team1Id}
+              <div className="flex items-center">
+                <img 
+                  src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                  alt={team1?.name || match.team1Id}
+                  className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                />
+                {team1?.name || match.team1Id}
+              </div>
             </SelectItem>
+            
+            {/* Team 1 Players */}
             {filteredPlayers
               .filter(p => p.teamId === match.team1Id)
               .map(player => (
-                <SelectItem key={player.id} value={player.name}>
-                  {player.name}
+                <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                  <div className="flex items-center">
+                    <img 
+                      src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                      alt={team1?.name || match.team1Id}
+                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                    />
+                    {player.name}
+                  </div>
                 </SelectItem>
               ))
             }
             
-            {/* Team 2 Players */}
+            {/* Team 2 Players Header */}
             <SelectItem value="team2-header" disabled className="font-bold text-primary">
-              {team2?.name || match.team2Id}
+              <div className="flex items-center">
+                <img 
+                  src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                  alt={team2?.name || match.team2Id}
+                  className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                />
+                {team2?.name || match.team2Id}
+              </div>
             </SelectItem>
+            
+            {/* Team 2 Players */}
             {filteredPlayers
               .filter(p => p.teamId === match.team2Id)
               .map(player => (
-                <SelectItem key={player.id} value={player.name}>
-                  {player.name}
+                <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                  <div className="flex items-center">
+                    <img 
+                      src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                      alt={team2?.name || match.team2Id}
+                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                    />
+                    {player.name}
+                  </div>
                 </SelectItem>
               ))
             }
@@ -729,13 +762,23 @@ export default function PredictionGame({
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-            <Label htmlFor={`${question.id}-team1`}>
+            <Label htmlFor={`${question.id}-team1`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                alt={team1?.name || match.team1Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team1?.name || match.team1Id}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-            <Label htmlFor={`${question.id}-team2`}>
+            <Label htmlFor={`${question.id}-team2`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                alt={team2?.name || match.team2Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team2?.name || match.team2Id}
             </Label>
           </div>
@@ -827,13 +870,23 @@ export default function PredictionGame({
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-            <Label htmlFor={`${question.id}-team1`}>
+            <Label htmlFor={`${question.id}-team1`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                alt={team1?.name || match.team1Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team1?.name || match.team1Id}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-            <Label htmlFor={`${question.id}-team2`}>
+            <Label htmlFor={`${question.id}-team2`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                alt={team2?.name || match.team2Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team2?.name || match.team2Id}
             </Label>
           </div>
@@ -1000,14 +1053,8 @@ export default function PredictionGame({
                       ? (team1?.name || match.team1Id) 
                       : (team2?.name || match.team2Id);
                   } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
-                if (answer.answer === 'any-team1') {
-                      displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
-                } else if (answer.answer === 'any-team2') {
-                      displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
-                } else {
                       // Just display the player name without team name
                       displayAnswer = answer.answer;
-                    }
                   } else if (question.type === 'highestTotal') {
                     displayAnswer = answer.answer ? `${answer.answer} runs` : 'No prediction';
                   } else if (question.type === 'moreSixes') {

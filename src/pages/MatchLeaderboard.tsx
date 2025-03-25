@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where } from "firebase/firestore";
 import { COLLECTIONS } from "@/utils/firestore-collections";
 import { COLLECTIONS as LIB_COLLECTIONS } from "@/lib/firestore";
-import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDateTime, getAvatarFallback } from "@/lib/utils";
 import { getTeamLogoUrl } from "@/utils/team-utils";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface QuestionPoint {
   questionId: string;
@@ -292,9 +297,24 @@ const MatchLeaderboard = () => {
         console.log(`Setting hasPendingEvaluations: ${hasPending} (pendingCount: ${pendingCount}, matchStatus: ${matchData.status})`);
         setHasPendingEvaluations(hasPending);
         
-        // Convert map to array and sort by total points
+        // Convert map to array and sort by total points, accuracy, and name
         const entries = Array.from(userEntries.values())
-          .sort((a, b) => b.totalPoints - a.totalPoints);
+          .sort((a, b) => {
+            // First, compare by total points
+            if (b.totalPoints !== a.totalPoints) {
+              return b.totalPoints - a.totalPoints;
+            }
+            
+            // If points are equal, compare by accuracy
+            const aAccuracy = a.totalPredictions > 0 ? (a.correctPredictions / a.totalPredictions) * 100 : 0;
+            const bAccuracy = b.totalPredictions > 0 ? (b.correctPredictions / b.totalPredictions) * 100 : 0;
+            if (bAccuracy !== aAccuracy) {
+              return bAccuracy - aAccuracy;
+            }
+            
+            // If both points and accuracy are equal, sort by name alphabetically
+            return a.displayName.localeCompare(b.displayName);
+          });
         
         setLeaderboard(entries);
         
@@ -429,6 +449,26 @@ const MatchLeaderboard = () => {
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Trophy className="h-6 w-6" /> 
             Match Leaderboard
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Players are ranked based on the following criteria in order:
+                  </p>
+                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                    <li>Total points earned (highest first)</li>
+                    <li>Prediction accuracy percentage (highest first)</li>
+                    <li>Player name (alphabetically) if points and accuracy are equal</li>
+                  </ol>
+                </div>
+              </PopoverContent>
+            </Popover>
           </h1>
           
           {/* Match Header */}
@@ -439,9 +479,31 @@ const MatchLeaderboard = () => {
                 <p className="text-gray-600">{match.venue}</p>
                 <p className="text-gray-600">{formatMatchDate(match.date)}</p>
               </div>
-              <Badge variant="outline" className="text-gray-500">
-                {match.status || 'Status not available'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-gray-500">
+                  {match.status || 'Status not available'}
+                </Badge>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Players are ranked based on the following criteria in order:
+                      </p>
+                      <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                        <li>Total points earned (highest first)</li>
+                        <li>Prediction accuracy percentage (highest first)</li>
+                        <li>Player name (alphabetically) if points and accuracy are equal</li>
+                      </ol>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {/* Teams and Score Display */}

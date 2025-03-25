@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { FirebaseError } from "firebase/app";
 import { isUserAdmin } from "@/utils/admin-auth";
@@ -18,6 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface WeeklyLeaderboardEntry {
   position: number;
@@ -141,22 +146,44 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
           snapshot.forEach((doc) => {
             const data = doc.data();
             entries.push({
-              position: position++,
+              position: 0, // Will be set after sorting
               userId: data.userId,
               userName: data.displayName || "Anonymous User",
               userAvatar: data.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.displayName || 'A')}&background=random`,
               weeklyPoints: data.weeklyPoints || 0,
               correctPredictions: data.correctPredictions || 0,
               totalPredictions: data.totalPredictions || 0,
-              accuracy: data.totalPredictions > 0 ? Math.round((data.correctPredictions / data.totalPredictions) * 100) : 0,
+              accuracy: data.accuracy || 0,
               weekStartDate: data.weekStartDate.toDate(),
               weekEndDate: data.weekEndDate.toDate()
             });
           });
 
-          setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-          setHasMore(entries.length === pageSize);
+          // Sort entries considering all three criteria
+          entries.sort((a, b) => {
+            // First, compare by weekly points
+            if (b.weeklyPoints !== a.weeklyPoints) {
+              return b.weeklyPoints - a.weeklyPoints;
+            }
+            
+            // If points are equal, compare by accuracy
+            if (b.accuracy !== a.accuracy) {
+              return b.accuracy - a.accuracy;
+            }
+            
+            // If both points and accuracy are equal, sort by name alphabetically
+            return a.userName.localeCompare(b.userName);
+          });
+
+          // Set positions after sorting
+          entries.forEach((entry, index) => {
+            entry.position = index + 1;
+          });
+
           setLeaderboard(entries);
+          setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+          setHasMore(snapshot.docs.length === pageSize);
+          setLoading(false);
         } else {
           setLeaderboard([]);
           setHasMore(false);
@@ -258,25 +285,47 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
             </div>
           )}
         </div>
-        {isAdmin && (
-          <Button 
-            onClick={handleManualUpdate} 
-            disabled={updating}
-            variant="outline"
-            size="sm"
-          >
-            {updating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              'Update Weekly Leaderboard'
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button 
+              onClick={handleManualUpdate} 
+              disabled={updating}
+              variant="outline"
+              size="sm"
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Weekly Leaderboard'
+              )}
+            </Button>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                <p className="text-sm text-muted-foreground">
+                  Players are ranked based on the following criteria in order:
+                </p>
+                <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                  <li>Total points earned (highest first)</li>
+                  <li>Prediction accuracy percentage (highest first)</li>
+                  <li>Player name (alphabetically) if points and accuracy are equal</li>
+                </ol>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead>
