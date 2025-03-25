@@ -106,40 +106,56 @@ const MatchCard = ({ match }: MatchCardProps) => {
 
   // Display match result for completed matches
   const renderMatchResult = () => {
-    if (match.status === "completed" && match.result) {
-      const isTeam1Winner = match.result.winner === match.team1;
-      const isTeam2Winner = match.result.winner === match.team2;
-      
-      return (
-        <div className="relative mt-2">
-          {/* Winner Trophy Animation */}
-          <div className="absolute top-0 left-0 right-0 flex justify-center">
-            <div className={`transform -translate-y-1/2 ${isTeam1Winner ? 'left-16' : isTeam2Winner ? 'right-16' : ''}`}>
-              <div className="animate-bounce">
-                <Trophy className="h-6 w-6 text-yellow-500 filter drop-shadow" />
+    if (match.status === "completed") {
+      if (match.result) {
+        const isTeam1Winner = match.result.winner === match.team1;
+        const isTeam2Winner = match.result.winner === match.team2;
+        
+        return (
+          <div className="relative mt-2">
+            {/* Winner Trophy Animation */}
+            <div className="absolute top-0 left-0 right-0 flex justify-center">
+              <div className={`transform -translate-y-1/2 ${isTeam1Winner ? 'left-16' : isTeam2Winner ? 'right-16' : ''}`}>
+                <div className="animate-bounce">
+                  <Trophy className="h-6 w-6 text-yellow-500 filter drop-shadow" />
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Score Display */}
-          <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-3">
-            <div className={`text-sm font-semibold ${isTeam1Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
-              {match.result.team1Score || '0'}
+            
+            {/* Score Display */}
+            <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-3">
+              <div className={`text-sm font-semibold ${isTeam1Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {match.result.team1Score || '0'}
+              </div>
+              <div className="text-xs text-gray-500">vs</div>
+              <div className={`text-sm font-semibold ${isTeam2Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {match.result.team2Score || '0'}
+              </div>
             </div>
-            <div className="text-xs text-gray-500">vs</div>
-            <div className={`text-sm font-semibold ${isTeam2Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
-              {match.result.team2Score || '0'}
+            
+            {/* Winner Text */}
+            <div className="text-center mt-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200">
+                {match.result.winner} won
+              </span>
             </div>
           </div>
-          
-          {/* Winner Text */}
-          <div className="text-center mt-2">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200">
-              {match.result.winner} won
-            </span>
+        );
+      } else {
+        // Show "Results awaiting" message for completed matches without results
+        return (
+          <div className="mt-2">
+            <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-600">Results awaiting</div>
+            </div>
+            <div className="text-center mt-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                Match completed
+              </span>
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
     }
     return null;
   };

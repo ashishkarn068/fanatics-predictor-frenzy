@@ -77,9 +77,23 @@ const MatchLeaderboard = () => {
   const [hasPendingEvaluations, setHasPendingEvaluations] = useState(false);
   
   // Filter leaderboard entries based on search query
-  const filteredLeaderboard = leaderboard.filter(entry => 
-    entry.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLeaderboard = leaderboard.filter(entry => {
+    // Always show the current user's entry
+    if (currentUser && entry.userId === currentUser.uid) {
+      return true;
+    }
+
+    // For other users' entries:
+    // 1. Must match search query if one exists
+    const matchesSearch = entry.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // 2. Only show if:
+    //    - User is admin, OR
+    //    - Match is completed and results are updated
+    const canViewOtherPredictions = isAdmin || (match?.status === 'completed' && !hasPendingEvaluations);
+
+    return matchesSearch && canViewOtherPredictions;
+  });
 
   useEffect(() => {
     if (!matchId) {
@@ -545,10 +559,12 @@ const MatchLeaderboard = () => {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-100">
               <div className="flex flex-col md:flex-row gap-4 justify-between">
-                <h2 className="text-xl font-semibold">{leaderboard.length === 0 ? 'No predictions yet' : 'Player Rankings'}</h2>
+                <h2 className="text-xl font-semibold">
+                  {leaderboard.length === 0 ? 'No predictions yet' : 'Player Rankings'}
+                </h2>
                 
                 <div className="flex items-center gap-2">
-                  {isAdmin && match.status === 'completed' && (
+                  {isAdmin && match?.status === 'completed' && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -584,6 +600,22 @@ const MatchLeaderboard = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Add visibility notice */}
+            {!isAdmin && match?.status !== 'completed' && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-yellow-800 text-sm">
+                  Other players' predictions will be visible once the match is completed and results are updated.
+                </p>
+              </div>
+            )}
+            {!isAdmin && match?.status === 'completed' && hasPendingEvaluations && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-yellow-800 text-sm">
+                  Other players' predictions will be visible once the match results are evaluated.
+                </p>
+              </div>
+            )}
             
             {leaderboard.length === 0 ? (
               <div className="p-8 text-center text-gray-600">

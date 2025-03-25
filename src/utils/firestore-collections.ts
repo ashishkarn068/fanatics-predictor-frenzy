@@ -33,8 +33,12 @@ export const COLLECTIONS = {
   MATCH_LEADERBOARDS: 'matchLeaderboards',
   ANSWERS: 'predictionAnswers',
   SYSTEM_SETTINGS: 'systemSettings',
-  GLOBAL_LEADERBOARD: 'globalLeaderboard'
+  GLOBAL_LEADERBOARD: 'globalLeaderboard',
+  WEEKLY_LEADERBOARD: 'weeklyLeaderboard'
 } as const;
+
+// Weekly Leaderboard Collection
+export const WEEKLY_LEADERBOARD = 'weeklyLeaderboard';
 
 // Type definitions
 export interface User {
@@ -233,29 +237,8 @@ export const updateUser = async (userId: string, userData: Partial<User>): Promi
 
 // Helper function to check and update match status based on date
 const syncMatchStatusWithDate = (match: Match): Match => {
-  // If match has results, it should be completed regardless of time
-  if (match.result) {
-    if (match.status !== 'completed') {
-      console.log(`Auto-updating match ${match.id} status to 'completed' because results are present`);
-      
-      // Create a new match object with updated status
-      const updatedMatch = {
-        ...match,
-        status: 'completed' as 'completed'
-      };
-      
-      // Try to update in Firestore (don't await to avoid blocking)
-      updateMatch(match.id, { status: 'completed' })
-        .then(() => console.log(`Successfully updated match ${match.id} status to 'completed' in database`))
-        .catch(error => console.error(`Failed to update match ${match.id} status:`, error));
-      
-      return updatedMatch;
-    }
-    return match;
-  }
-  
-  // Skip if match is already completed
-  if (match.status === 'completed') {
+  // Skip if match is already completed or live
+  if (match.status === 'completed' || match.status === 'live') {
     return match;
   }
   
@@ -277,30 +260,9 @@ const syncMatchStatusWithDate = (match: Match): Match => {
   
   const now = new Date();
   
-  // Calculate 5 hours after match time
-  const fiveHoursAfterMatch = new Date(matchDate.getTime() + (5 * 60 * 60 * 1000));
-  
-  // If match time has passed but it's not 5 hours after yet, set to 'live'
-  if (matchDate <= now && now < fiveHoursAfterMatch && match.status === 'upcoming') {
-    console.log(`Auto-updating match ${match.id} status to 'live' because match time has passed`);
-    
-    // Create a new match object with updated status
-    const updatedMatch = {
-      ...match,
-      status: 'live' as 'live'
-    };
-    
-    // Try to update in Firestore (don't await to avoid blocking)
-    updateMatch(match.id, { status: 'live' })
-      .then(() => console.log(`Successfully updated match ${match.id} status to 'live' in database`))
-      .catch(error => console.error(`Failed to update match ${match.id} status:`, error));
-    
-    return updatedMatch;
-  }
-  
-  // If it's more than 5 hours after match time and status is still 'live' or 'upcoming', update to 'completed'
-  if (now >= fiveHoursAfterMatch && (match.status === 'live' || match.status === 'upcoming')) {
-    console.log(`Auto-updating match ${match.id} status to 'completed' because it's 5 hours after match time`);
+  // If match time has passed and status is still 'upcoming', update it to 'completed'
+  if (matchDate <= now && match.status === 'upcoming') {
+    console.log(`Auto-updating match ${match.id} status to 'completed' because date has passed`);
     
     // Create a new match object with updated status
     const updatedMatch = {
@@ -1258,81 +1220,80 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
       console.log(`User answer: ${userAnswer}, Correct answer: ${correctAnswer}`);
       
       let isCorrect = false;
-      let pointsEarned = 0;
       
-      // Only evaluate if user provided an answer
-      if (userAnswer) {
-        // Evaluate based on question type with simplified logic
-        if (questionType === 'winner') {
-          // Simple exact match for winner
-          isCorrect = userAnswer === correctAnswer;
-        } 
-        else if (questionType === 'topBatsman') {
-          // Normalize player names for comparison
-          const standardizedUserAnswer = standardizePlayerName(userAnswer);
-          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
-          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-        } 
-        else if (questionType === 'topBowler') {
-          // Normalize player names for comparison
-          const standardizedUserAnswer = standardizePlayerName(userAnswer);
-          const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
-          isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
-        }
-        else if (questionType === 'moreSixes') {
-          // Simple exact match for team with more sixes
-          isCorrect = userAnswer === correctAnswer;
-        }
-        else if (questionType === 'totalSixes') {
-          // Handle range-based sixes evaluation
-          const actualSixes = parseInt(correctAnswer?.toString() || '0');
+      // Evaluate based on question type with simplified logic
+      if (questionType === 'winner') {
+        // Simple exact match for winner
+        isCorrect = userAnswer === correctAnswer;
+      } 
+      else if (questionType === 'topBatsman') {
+        // Normalize player names for comparison
+        const standardizedUserAnswer = standardizePlayerName(userAnswer);
+        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
+      } 
+      else if (questionType === 'topBowler') {
+        // Normalize player names for comparison
+        const standardizedUserAnswer = standardizePlayerName(userAnswer);
+        const standardizedCorrectAnswer = standardizePlayerName(correctAnswer);
+        isCorrect = standardizedUserAnswer === standardizedCorrectAnswer;
+      } 
+      else if (questionType === 'moreSixes') {
+        // Simple exact match for team with more sixes
+        isCorrect = userAnswer === correctAnswer;
+      }
+      else if (questionType === 'totalSixes') {
+        // Handle range-based sixes evaluation
+        // The correct answer should be the actual number of sixes
+        const actualSixes = parseInt(correctAnswer?.toString() || '0');
+        
+        // User answer is in the format "X-Y" (e.g., "12-17")
+        const userRange = userAnswer.split('-');
+        if (userRange.length === 2) {
+          const minSixes = parseInt(userRange[0]);
+          const maxSixes = parseInt(userRange[1]);
           
-          // User answer is in the format "X-Y" (e.g., "12-17")
-          const userRange = userAnswer.split('-');
-          if (userRange.length === 2) {
-            const minSixes = parseInt(userRange[0]);
-            const maxSixes = parseInt(userRange[1]);
-            
-            // Check if the actual number falls within the user's selected range
-            isCorrect = actualSixes >= minSixes && actualSixes <= maxSixes;
-          } else {
-            console.log(`Invalid total sixes answer format: ${userAnswer}`);
-            isCorrect = false;
-          }
+          // Check if the actual number falls within the user's selected range
+          isCorrect = actualSixes >= minSixes && actualSixes <= maxSixes;
+          
+          console.log(`Total sixes evaluation: User predicted ${userAnswer} range, Actual sixes: ${actualSixes}, IsCorrect: ${isCorrect}`);
+        } else {
+          console.log(`Invalid total sixes answer format: ${userAnswer}`);
+          isCorrect = false;
         }
-        else if (questionType === 'highestTotal') {
-          // For "Will total exceed 350?" questions
-          let actualExceeded = false;
-          
-          // Calculate total match runs from team scores
-          const team1Runs = parseInt(result.team1Score?.split('/')[0] || '0');
-          const team2Runs = parseInt(result.team2Score?.split('/')[0] || '0');
-          const totalMatchRuns = team1Runs + team2Runs;
-          
-          // Check if total runs exceed 350
+      }
+      else if (questionType === 'highestTotal') {
+        // For "Will total exceed X?" questions
+        // Parse the total from result - this might be a number OR a yes/no answer
+        let actualExceeded = false;
+        
+        // Handle different formats of the correct answer
+        if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
+          // If the correct answer is a number (from admin input)
+          const actualTotal = parseInt(correctAnswer?.toString() || '0');
           const defaultThreshold = 350;
-          actualExceeded = totalMatchRuns > defaultThreshold;
-          
-          const userPrediction = userAnswer.toLowerCase();
-          const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
-          
-          isCorrect = userPredictedExceeded === actualExceeded;
-          
-          // Log for debugging
-          console.log(`Evaluating match total: Team1: ${team1Runs}, Team2: ${team2Runs}, Total: ${totalMatchRuns}, Exceeded 350: ${actualExceeded}, User predicted exceeded: ${userPredictedExceeded}, isCorrect: ${isCorrect}`);
-        } 
-        else {
-          // For any other question type, use simple exact match
-          isCorrect = userAnswer === correctAnswer;
+          actualExceeded = actualTotal > defaultThreshold;
+        } else if (typeof correctAnswer === 'string') {
+          // If the correct answer is already a string like 'yes'/'no' or 'true'/'false'
+          const answerLower = correctAnswer.toLowerCase();
+          actualExceeded = answerLower === 'yes' || answerLower === 'true';
         }
         
-        // Calculate points - award positive points if correct, deduct negative points if wrong
-        pointsEarned = isCorrect ? questionPoints : -negativePoints;
-      } else {
-        // If no answer provided, set isCorrect to false but don't deduct points
-        isCorrect = false;
-        pointsEarned = 0;
+        // Evaluate based on user's yes/no answer
+        const userPrediction = userAnswer.toLowerCase();
+        const userPredictedExceeded = userPrediction === 'yes' || userPrediction === 'true';
+        
+        isCorrect = userPredictedExceeded === actualExceeded;
+        
+        console.log(`Highest total evaluation: User predicted exceed: ${userPredictedExceeded}, Actual exceeded: ${actualExceeded}, IsCorrect: ${isCorrect}`);
+      } 
+      else {
+        // For any other question type, use simple exact match
+        isCorrect = userAnswer === correctAnswer;
       }
+      
+      // Calculate points - award positive points if correct, deduct negative points if wrong
+      const pointsEarned = isCorrect ? questionPoints : -negativePoints; // negativePoints is stored as a positive value, so we add the negative sign here
       
       // Update the prediction answer document
       batch.update(docSnapshot.ref, {
@@ -1345,7 +1306,7 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
       updateCount++;
       
       // Update user points
-      userPointsMap[userId].totalPoints += pointsEarned;
+      userPointsMap[userId].totalPoints += pointsEarned; // Add positive or negative points
       if (isCorrect) {
         userPointsMap[userId].correctPredictions++;
       }
@@ -1425,26 +1386,28 @@ const createMatchLeaderboard = async (
     const batch = writeBatch(db);
     
     for (const [userId, stats] of Object.entries(userPointsMap)) {
-      // Get user data
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // Create entry in the leaderboard entries subcollection
-        const entryRef = doc(db, 'leaderboards', leaderboardId, 'entries', userId);
-        
-        batch.set(entryRef, {
-          userId,
-          displayName: userData.displayName || 'Anonymous User',
-          photoURL: userData.photoURL,
-          points: stats.totalPoints,
-          correctPredictions: stats.correctPredictions,
-          totalPredictions: stats.totalPredictions,
-          accuracy: stats.totalPredictions > 0 
-            ? Math.round((stats.correctPredictions / stats.totalPredictions) * 100) 
-            : 0,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+      if (stats.totalPoints > 0) {
+        // Get user data
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          // Create entry in the leaderboard entries subcollection
+          const entryRef = doc(db, 'leaderboards', leaderboardId, 'entries', userId);
+          
+          batch.set(entryRef, {
+            userId,
+            displayName: userData.displayName || 'Anonymous User',
+            photoURL: userData.photoURL,
+            points: stats.totalPoints,
+            correctPredictions: stats.correctPredictions,
+            totalPredictions: stats.totalPredictions,
+            accuracy: stats.totalPredictions > 0 
+              ? Math.round((stats.correctPredictions / stats.totalPredictions) * 100) 
+              : 0,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        }
       }
     }
     
@@ -1466,11 +1429,10 @@ export const updateMatchWithResults = async (
   resultData: Omit<MatchResult, 'id' | 'matchId' | 'createdBy' | 'createdAt' | 'updatedAt'>
 ): Promise<void> => {
   try {
-    // First update the match - always set status to completed when results are added
+    // First update the match
     const matchDocRef = doc(db, COLLECTIONS.MATCHES, matchId);
     await updateDoc(matchDocRef, {
       ...matchData,
-      status: 'completed', // Force status to completed when results are added
       ...updateTimestamp()
     });
     
@@ -1763,21 +1725,19 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
     // Calculate totals
     let totalPoints = 0;
     let correctPredictions = 0;
-    let totalAnsweredQuestions = 0;
-    const matchesWithAnswers = new Set<string>();  // Track matches where user actually answered
+    let totalPredictions = 0;
+    const matchesSet = new Set<string>();
     
     answersSnapshot.forEach((doc) => {
       const answer = doc.data();
-      if (answer.answer) {  // Only count if user actually submitted an answer
-        totalPoints += answer.pointsEarned || 0;
-        if (answer.isCorrect) correctPredictions++;
-        totalAnsweredQuestions++;
-        if (answer.matchId) matchesWithAnswers.add(answer.matchId);
-      }
+      totalPoints += answer.pointsEarned || 0;
+      if (answer.isCorrect) correctPredictions++;
+      totalPredictions++;
+      if (answer.matchId) matchesSet.add(answer.matchId);
     });
     
-    // Calculate accuracy only based on answered questions
-    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
+    // Calculate accuracy
+    const accuracy = totalPredictions > 0 ? (correctPredictions / totalPredictions) * 100 : 0;
     
     // Update or create global leaderboard entry
     const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
@@ -1787,10 +1747,10 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
       photoURL: userData.data()?.photoURL,
       totalPoints,
       correctPredictions,
-      totalPredictions: totalAnsweredQuestions,  // Only count answered questions
+      totalPredictions,
       accuracy,
       lastUpdated: serverTimestamp(),
-      matchesPlayed: matchesWithAnswers.size  // Only count matches where user answered at least one question
+      matchesPlayed: matchesSet.size
     }, { merge: true });
     
   } catch (error) {
@@ -2066,5 +2026,187 @@ export const resetPredictions = async (userId: string, matchId: string): Promise
   } catch (error) {
     console.error('Error resetting predictions:', error);
     throw error;
+  }
+};
+
+// Helper function to get the current week's start and end dates (Monday to Sunday)
+export const getCurrentWeekDates = () => {
+  const now = new Date();
+  const currentDay = now.getDay();
+  // Adjust when Sunday (0) to be 7 for our calculation
+  const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+  
+  const weekStart = new Date(now.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0);
+  
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+  
+  return { weekStart, weekEnd };
+};
+
+// Update weekly leaderboard from prediction answers
+export const updateWeeklyLeaderboard = async (userId: string) => {
+  try {
+    console.log(`Updating weekly leaderboard for user ${userId}`);
+    const { weekStart, weekEnd } = getCurrentWeekDates();
+    console.log(`Week range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    
+    // Get user's global leaderboard entry
+    const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
+    const globalLeaderboardData = await getDoc(globalLeaderboardRef);
+    
+    if (!globalLeaderboardData.exists()) {
+      console.error(`No global leaderboard entry found for user ${userId}`);
+      return;
+    }
+    
+    const globalData = globalLeaderboardData.data();
+    console.log(`Global leaderboard data for user:`, globalData);
+    
+    // Get all prediction answers for this user within the current week
+    const answersQuery = query(
+      collection(db, COLLECTIONS.ANSWERS),
+      where("userId", "==", userId)
+    );
+    
+    const answersSnapshot = await getDocs(answersQuery);
+    console.log(`Found ${answersSnapshot.size} total answers for user`);
+    
+    // Calculate totals for the week
+    let weeklyPoints = 0;
+    let correctPredictions = 0;
+    let totalAnsweredQuestions = 0;
+    const matchesWithAnswers = new Set<string>();
+    
+    // Process only answers that have actual predictions and are within the current week
+    answersSnapshot.forEach((doc) => {
+      const answer = doc.data();
+      const answerDate = answer.createdAt?.toDate();
+      
+      // Skip if answer is not within current week
+      if (!answerDate || answerDate < weekStart || answerDate > weekEnd) {
+        return;
+      }
+      
+      console.log(`Processing answer:`, {
+        matchId: answer.matchId,
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+        pointsEarned: answer.pointsEarned,
+        createdAt: answerDate.toISOString()
+      });
+      
+      // Only count if user actually submitted an answer and it has been evaluated
+      if (answer.answer && answer.answer.trim() !== '' && answer.isCorrect !== undefined) {
+        weeklyPoints += answer.pointsEarned || 0;
+        if (answer.isCorrect) {
+          correctPredictions++;
+        }
+        totalAnsweredQuestions++;
+        if (answer.matchId) {
+          matchesWithAnswers.add(answer.matchId);
+        }
+      }
+    });
+    
+    // Calculate accuracy only based on answered and evaluated questions
+    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
+    
+    console.log(`Weekly stats calculated for ${userId}:`, {
+      weeklyPoints,
+      correctPredictions,
+      totalAnsweredQuestions,
+      accuracy,
+      uniqueMatches: matchesWithAnswers.size
+    });
+    
+    // Update weekly leaderboard entry - completely overwrite the existing data
+    const weeklyLeaderboardRef = doc(db, COLLECTIONS.WEEKLY_LEADERBOARD, userId);
+    const weeklyData = {
+      userId,
+      displayName: globalData.displayName || "Anonymous User",
+      photoURL: globalData.photoURL,
+      weeklyPoints,
+      correctPredictions,
+      totalPredictions: totalAnsweredQuestions,
+      accuracy,
+      lastUpdated: serverTimestamp(),
+      weekStartDate: Timestamp.fromDate(weekStart),
+      weekEndDate: Timestamp.fromDate(weekEnd),
+      matchesPlayed: matchesWithAnswers.size
+    };
+    
+    console.log(`Overwriting weekly leaderboard with data for ${userId}:`, weeklyData);
+    
+    // Use setDoc without merge option to completely overwrite the document
+    await setDoc(weeklyLeaderboardRef, weeklyData);
+    
+    console.log(`Successfully updated weekly leaderboard for user ${userId}`);
+    
+  } catch (error) {
+    console.error("Error updating weekly leaderboard:", error);
+    throw error;
+  }
+};
+
+// Function for admin to manually update weekly leaderboard
+export const updateAllWeeklyLeaderboards = async () => {
+  try {
+    console.log("Starting manual update of weekly leaderboards...");
+    
+    // Get all global leaderboard entries
+    const globalLeaderboardRef = collection(db, COLLECTIONS.GLOBAL_LEADERBOARD);
+    const globalLeaderboardSnapshot = await getDocs(globalLeaderboardRef);
+    
+    // Process each user's data
+    const updatePromises = globalLeaderboardSnapshot.docs.map(async (doc) => {
+      const userId = doc.id;
+      try {
+        await updateWeeklyLeaderboard(userId);
+        console.log(`Updated weekly leaderboard for user ${userId}`);
+      } catch (error) {
+        console.error(`Error updating weekly leaderboard for user ${userId}:`, error);
+      }
+    });
+    
+    await Promise.all(updatePromises);
+    console.log("Completed manual update of weekly leaderboards");
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating all weekly leaderboards:", error);
+    throw error;
+  }
+};
+
+// Get all available weeks from weekly leaderboard
+export const getAvailableWeeks = async () => {
+  try {
+    const weeklyLeaderboardRef = collection(db, COLLECTIONS.WEEKLY_LEADERBOARD);
+    const snapshot = await getDocs(weeklyLeaderboardRef);
+    
+    const weeks = new Set<string>();
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.weekStartDate) {
+        const weekStart = data.weekStartDate.toDate();
+        const weekEnd = data.weekEndDate.toDate();
+        weeks.add(`${weekStart.toISOString()}_${weekEnd.toISOString()}`);
+      }
+    });
+    
+    return Array.from(weeks).map(week => {
+      const [start, end] = week.split('_');
+      return {
+        start: new Date(start),
+        end: new Date(end)
+      };
+    }).sort((a, b) => b.start.getTime() - a.start.getTime()); // Sort by most recent first
+    
+  } catch (error) {
+    console.error("Error getting available weeks:", error);
+    return [];
   }
 };
