@@ -1263,20 +1263,20 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
         }
       }
       else if (questionType === 'highestTotal') {
-        // For "Will total exceed X?" questions
-        // Parse the total from result - this might be a number OR a yes/no answer
+        // For "Will total exceed 350 runs?" questions
         let actualExceeded = false;
         
-        // Handle different formats of the correct answer
-        if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
-          // If the correct answer is a number (from admin input)
-          const actualTotal = parseInt(correctAnswer?.toString() || '0');
-          const defaultThreshold = 350;
-          actualExceeded = actualTotal > defaultThreshold;
-        } else if (typeof correctAnswer === 'string') {
-          // If the correct answer is already a string like 'yes'/'no' or 'true'/'false'
-          const answerLower = correctAnswer.toLowerCase();
-          actualExceeded = answerLower === 'yes' || answerLower === 'true';
+        // Calculate total runs from team scores
+        if (result.team1Score && result.team2Score) {
+          // Parse scores and handle any non-numeric characters (like wickets)
+          const team1Runs = parseInt(result.team1Score.split('/')[0]);
+          const team2Runs = parseInt(result.team2Score.split('/')[0]);
+          
+          if (!isNaN(team1Runs) && !isNaN(team2Runs)) {
+            const totalRuns = team1Runs + team2Runs;
+            console.log(`Total runs in match: ${totalRuns} (${team1Runs} + ${team2Runs})`);
+            actualExceeded = totalRuns > 350;
+          }
         }
         
         // Evaluate based on user's yes/no answer
@@ -1725,19 +1725,30 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
     // Calculate totals
     let totalPoints = 0;
     let correctPredictions = 0;
-    let totalPredictions = 0;
+    let totalAnsweredQuestions = 0;
     const matchesSet = new Set<string>();
     
     answersSnapshot.forEach((doc) => {
       const answer = doc.data();
-      totalPoints += answer.pointsEarned || 0;
-      if (answer.isCorrect) correctPredictions++;
-      totalPredictions++;
-      if (answer.matchId) matchesSet.add(answer.matchId);
+      // Only count answers that have been evaluated (isCorrect is defined)
+      if (answer.answer && answer.answer.trim() !== '' && answer.isCorrect !== undefined) {
+        totalPoints += answer.pointsEarned || 0;
+        if (answer.isCorrect) correctPredictions++;
+        totalAnsweredQuestions++;
+        if (answer.matchId) matchesSet.add(answer.matchId);
+      }
     });
     
-    // Calculate accuracy
-    const accuracy = totalPredictions > 0 ? (correctPredictions / totalPredictions) * 100 : 0;
+    // Calculate accuracy only based on answered and evaluated questions
+    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
+    
+    console.log(`Global stats calculated for ${userId}:`, {
+      totalPoints,
+      correctPredictions,
+      totalAnsweredQuestions,
+      accuracy,
+      uniqueMatches: matchesSet.size
+    });
     
     // Update or create global leaderboard entry
     const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
@@ -1747,7 +1758,7 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
       photoURL: userData.data()?.photoURL,
       totalPoints,
       correctPredictions,
-      totalPredictions,
+      totalPredictions: totalAnsweredQuestions, // This now reflects actual answered questions
       accuracy,
       lastUpdated: serverTimestamp(),
       matchesPlayed: matchesSet.size

@@ -393,6 +393,34 @@ const Leaderboard = () => {
                     </table>
                   </div>
                 </div>
+                {/* Add pagination controls */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                  <div className="flex items-center text-sm text-gray-500">
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, totalEntries)} of {totalEntries} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={!hasMore}
+                      className="flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </TabsContent>

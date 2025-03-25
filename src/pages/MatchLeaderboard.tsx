@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where } from "firebase/firestore";
 import { COLLECTIONS } from "@/utils/firestore-collections";
 import { COLLECTIONS as LIB_COLLECTIONS } from "@/lib/firestore";
-import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2, Info } from "lucide-react";
+import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2, Info, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +64,8 @@ interface MatchData {
   };
 }
 
+const PAGE_SIZE = 10;
+
 const MatchLeaderboard = () => {
   const { id: matchId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -80,8 +82,10 @@ const MatchLeaderboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [hasPendingEvaluations, setHasPendingEvaluations] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
-  // Filter leaderboard entries based on search query
+  // Filter leaderboard entries based on search query and pagination
   const filteredLeaderboard = leaderboard.filter(entry => {
     // Always show the current user's entry
     if (currentUser && entry.userId === currentUser.uid) {
@@ -99,6 +103,29 @@ const MatchLeaderboard = () => {
 
     return matchesSearch && canViewOtherPredictions;
   });
+
+  // Get paginated entries
+  const paginatedEntries = filteredLeaderboard.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  // Update hasMore based on filtered results
+  useEffect(() => {
+    setHasMore((currentPage * PAGE_SIZE) < filteredLeaderboard.length);
+  }, [currentPage, filteredLeaderboard.length]);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     if (!matchId) {
@@ -703,8 +730,8 @@ const MatchLeaderboard = () => {
                       <th className="w-1/12 px-2"></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {filteredLeaderboard.map((entry, index) => (
+                  <tbody className="divide-y divide-gray-200">
+                    {paginatedEntries.map((entry, index) => (
                       <>
                         <tr 
                           key={`row-${entry.userId}`}
@@ -870,6 +897,35 @@ const MatchLeaderboard = () => {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Add pagination controls */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                  <div className="flex items-center text-sm text-gray-500">
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, filteredLeaderboard.length)} of {filteredLeaderboard.length} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={!hasMore}
+                      className="flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
