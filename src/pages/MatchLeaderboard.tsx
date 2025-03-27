@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where } from "firebase/firestore";
 import { COLLECTIONS } from "@/utils/firestore-collections";
 import { COLLECTIONS as LIB_COLLECTIONS } from "@/lib/firestore";
-import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw } from "lucide-react";
+import { ChevronLeft, Trophy, ChevronDown, ChevronUp, Search, AlertTriangle, RefreshCw, Loader2, Info, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDateTime, getAvatarFallback } from "@/lib/utils";
 import { getTeamLogoUrl } from "@/utils/team-utils";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface QuestionPoint {
   questionId: string;
@@ -59,6 +64,8 @@ interface MatchData {
   };
 }
 
+const PAGE_SIZE = 10;
+
 const MatchLeaderboard = () => {
   const { id: matchId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -75,11 +82,50 @@ const MatchLeaderboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [hasPendingEvaluations, setHasPendingEvaluations] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
-  // Filter leaderboard entries based on search query
-  const filteredLeaderboard = leaderboard.filter(entry => 
-    entry.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter leaderboard entries based on search query and pagination
+  const filteredLeaderboard = leaderboard.filter(entry => {
+    // Always show the current user's entry
+    if (currentUser && entry.userId === currentUser.uid) {
+      return true;
+    }
+
+    // For other users' entries:
+    // 1. Must match search query if one exists
+    const matchesSearch = entry.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // 2. Only show if:
+    //    - User is admin, OR
+    //    - Match is completed and results are updated
+    const canViewOtherPredictions = isAdmin || (match?.status === 'completed' && !hasPendingEvaluations);
+
+    return matchesSearch && canViewOtherPredictions;
+  });
+
+  // Get paginated entries
+  const paginatedEntries = filteredLeaderboard.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   );
+
+  // Update hasMore based on filtered results
+  useEffect(() => {
+    setHasMore((currentPage * PAGE_SIZE) < filteredLeaderboard.length);
+  }, [currentPage, filteredLeaderboard.length]);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     if (!matchId) {
@@ -250,13 +296,15 @@ const MatchLeaderboard = () => {
           }
           
           // Check if this prediction has been evaluated
-          if (prediction.isCorrect === true) {
-            entry.correctPredictions++;
+          if (prediction.isCorrect !== undefined) {
+            if (prediction.isCorrect) {
+              entry.correctPredictions++;
+            }
             const pointsEarned = prediction.pointsEarned || 0;
-            entry.totalPoints += pointsEarned;
+            entry.totalPoints += pointsEarned; // This will add positive points and subtract negative points
             
-            console.log(`Correct prediction for user ${userId}, question ${questionId}: ${pointsEarned} points`);
-          } else if (prediction.isCorrect === undefined && matchData.status === 'completed') {
+            console.log(`Prediction for user ${userId}, question ${questionId}: IsCorrect: ${prediction.isCorrect}, Points: ${pointsEarned}`);
+          } else if (matchData.status === 'completed') {
             pendingCount++;
             console.log(`Pending evaluation for user ${userId}, question ${questionId}`);
           }
@@ -276,9 +324,24 @@ const MatchLeaderboard = () => {
         console.log(`Setting hasPendingEvaluations: ${hasPending} (pendingCount: ${pendingCount}, matchStatus: ${matchData.status})`);
         setHasPendingEvaluations(hasPending);
         
-        // Convert map to array and sort by total points
+        // Convert map to array and sort by total points, accuracy, and name
         const entries = Array.from(userEntries.values())
-          .sort((a, b) => b.totalPoints - a.totalPoints);
+          .sort((a, b) => {
+            // First, compare by total points
+            if (b.totalPoints !== a.totalPoints) {
+              return b.totalPoints - a.totalPoints;
+            }
+            
+            // If points are equal, compare by accuracy
+            const aAccuracy = a.totalPredictions > 0 ? (a.correctPredictions / a.totalPredictions) * 100 : 0;
+            const bAccuracy = b.totalPredictions > 0 ? (b.correctPredictions / b.totalPredictions) * 100 : 0;
+            if (bAccuracy !== aAccuracy) {
+              return bAccuracy - aAccuracy;
+            }
+            
+            // If both points and accuracy are equal, sort by name alphabetically
+            return a.displayName.localeCompare(b.displayName);
+          });
         
         setLeaderboard(entries);
         
@@ -413,61 +476,135 @@ const MatchLeaderboard = () => {
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Trophy className="h-6 w-6" /> 
             Match Leaderboard
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Players are ranked based on the following criteria in order:
+                  </p>
+                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                    <li>Total points earned (highest first)</li>
+                    <li>Prediction accuracy percentage (highest first)</li>
+                    <li>Player name (alphabetically) if points and accuracy are equal</li>
+                  </ol>
+                </div>
+              </PopoverContent>
+            </Popover>
           </h1>
           
-          {/* Match details */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold mb-2">
-                  {match.team1} vs {match.team2}
-                </h2>
+          {/* Match Header */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+                <h1 className="text-2xl font-bold mb-1">{match.team1} vs {match.team2}</h1>
                 <p className="text-gray-600">{match.venue}</p>
                 <p className="text-gray-600">{formatMatchDate(match.date)}</p>
               </div>
-              
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 flex items-center justify-center">
-                    <img 
-                      src={getTeamLogoUrl(match.team1)} 
-                      alt={match.team1} 
-                      className="max-h-full max-w-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "/images/teams/default.png";
-                      }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="text-2xl font-bold">VS</div>
-                
-                <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 flex items-center justify-center">
-                    <img 
-                      src={getTeamLogoUrl(match.team2)} 
-                      alt={match.team2} 
-                      className="max-h-full max-w-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "/images/teams/default.png";
-                      }}
-                    />
-                  </div>
-                </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-gray-500">
+                  {match.status || 'Status not available'}
+                </Badge>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Players are ranked based on the following criteria in order:
+                      </p>
+                      <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                        <li>Total points earned (highest first)</li>
+                        <li>Prediction accuracy percentage (highest first)</li>
+                        <li>Player name (alphabetically) if points and accuracy are equal</li>
+                      </ol>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
-              
-              <div>
-                {match.status === 'completed' ? (
-                  <Badge variant="default" className="bg-green-600">Completed</Badge>
-                ) : match.status === 'live' ? (
-                  <Badge variant="default" className="bg-red-600 animate-pulse">Live</Badge>
-                ) : (
-                  <Badge variant="outline">Upcoming</Badge>
+            </div>
+
+            {/* Teams and Score Display */}
+            <div className="flex flex-col md:flex-row items-center justify-center mt-8 space-y-6 md:space-y-0">
+              <div className="flex flex-col items-center text-center md:w-1/3">
+                <div className="h-24 w-24 flex items-center justify-center">
+                  <img 
+                    src={getTeamLogoUrl(match.team1)} 
+                    alt={match.team1} 
+                    className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/images/teams/default.png";
+                    }}
+                  />
+                </div>
+                <h2 className="text-xl font-bold">{match.team1}</h2>
+              </div>
+
+              <div className="flex flex-col items-center justify-center md:w-1/3">
+                <div className="text-3xl font-bold mb-2">VS</div>
+                {match.status === 'completed' && match.result && (
+                  <div className="flex flex-col items-center space-y-4 mt-8">
+                    {/* Score Display with Trophy */}
+                    <div className="relative w-full max-w-xl">
+                      {/* Trophy Container - Positioned above scores */}
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                        <Trophy className="w-8 h-8 text-yellow-500 animate-bounce" />
+                      </div>
+                      
+                      {/* Score Container */}
+                      <div className="flex items-center justify-between w-full bg-gradient-to-r from-blue-50 via-white to-blue-50 rounded-lg p-6 shadow-md">
+                        {/* Team 1 Score */}
+                        <div className={`text-2xl font-bold ${match.result.winner === match.team1 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                          {match.result.team1Score || '0'}
+                        </div>
+                        
+                        {/* VS Separator */}
+                        <div className="text-xl font-medium text-gray-500 mx-4">
+                          vs
+                        </div>
+                        
+                        {/* Team 2 Score */}
+                        <div className={`text-2xl font-bold ${match.result.winner === match.team2 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                          {match.result.team2Score || '0'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Winner Announcement */}
+                    <div className="bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 px-6 py-3 rounded-full border border-yellow-200 shadow-sm">
+                      <span className="text-lg font-semibold text-yellow-800">
+                        {match.result.winner} won the match!
+                      </span>
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              <div className="flex flex-col items-center text-center md:w-1/3">
+                <div className="h-24 w-24 flex items-center justify-center">
+                  <img 
+                    src={getTeamLogoUrl(match.team2)} 
+                    alt={match.team2} 
+                    className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/images/teams/default.png";
+                    }}
+                  />
+                </div>
+                <h2 className="text-xl font-bold">{match.team2}</h2>
               </div>
             </div>
           </div>
@@ -511,10 +648,12 @@ const MatchLeaderboard = () => {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-100">
               <div className="flex flex-col md:flex-row gap-4 justify-between">
-                <h2 className="text-xl font-semibold">{leaderboard.length === 0 ? 'No predictions yet' : 'Player Rankings'}</h2>
+                <h2 className="text-xl font-semibold">
+                  {leaderboard.length === 0 ? 'No predictions yet' : 'Player Rankings'}
+                </h2>
                 
                 <div className="flex items-center gap-2">
-                  {isAdmin && match.status === 'completed' && (
+                  {isAdmin && match?.status === 'completed' && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -551,6 +690,22 @@ const MatchLeaderboard = () => {
               </div>
             </div>
             
+            {/* Add visibility notice */}
+            {!isAdmin && match?.status !== 'completed' && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-yellow-800 text-sm">
+                  Other players' predictions will be visible once the match is completed and results are updated.
+                </p>
+              </div>
+            )}
+            {!isAdmin && match?.status === 'completed' && hasPendingEvaluations && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-yellow-800 text-sm">
+                  Other players' predictions will be visible once the match results are evaluated.
+                </p>
+              </div>
+            )}
+            
             {leaderboard.length === 0 ? (
               <div className="p-8 text-center text-gray-600">
                 {match.status === 'completed' ? (
@@ -575,8 +730,8 @@ const MatchLeaderboard = () => {
                       <th className="w-1/12 px-2"></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {filteredLeaderboard.map((entry, index) => (
+                  <tbody className="divide-y divide-gray-200">
+                    {paginatedEntries.map((entry, index) => (
                       <>
                         <tr 
                           key={`row-${entry.userId}`}
@@ -588,29 +743,35 @@ const MatchLeaderboard = () => {
                           onClick={() => toggleUserExpand(entry.userId)}
                         >
                           <td className="p-4 w-1/12 whitespace-nowrap">
-                            {index === 0 ? (
+                            {((currentPage - 1) * PAGE_SIZE + index) === 0 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-800 rounded-full">
                                 <Trophy className="h-4 w-4" />
                               </span>
-                            ) : index === 1 ? (
+                            ) : ((currentPage - 1) * PAGE_SIZE + index) === 1 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-800 rounded-full">
                                 2
                               </span>
-                            ) : index === 2 ? (
+                            ) : ((currentPage - 1) * PAGE_SIZE + index) === 2 ? (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-amber-100 text-amber-800 rounded-full">
                                 3
                               </span>
                             ) : (
                               <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 text-gray-600 rounded-full">
-                                {index + 1}
+                                {(currentPage - 1) * PAGE_SIZE + index + 1}
                               </span>
                             )}
                           </td>
                           <td className="p-4 w-5/12">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={entry.photoURL || undefined} />
-                                <AvatarFallback>{getAvatarFallback(entry.displayName)}</AvatarFallback>
+                                <AvatarImage 
+                                  src={entry.photoURL || undefined} 
+                                  alt={entry.displayName}
+                                  referrerPolicy="no-referrer"
+                                />
+                                <AvatarFallback>
+                                  {getAvatarFallback(entry.displayName)}
+                                </AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{entry.displayName}</span>
                               {currentUser?.uid === entry.userId && (
@@ -619,12 +780,14 @@ const MatchLeaderboard = () => {
                             </div>
                           </td>
                           <td className="p-4 w-3/12 text-right whitespace-nowrap">
-                            {entry.totalPoints > 0 ? (
-                              <span className="text-green-600 font-medium">{entry.totalPoints}</span>
-                            ) : match.status !== 'completed' ? (
+                            {match.status !== 'completed' ? (
                               <span className="text-gray-500 font-medium">Pending</span>
                             ) : hasPendingEvaluations ? (
                               <span className="text-amber-600 font-medium">Evaluating</span>
+                            ) : entry.totalPoints > 0 ? (
+                              <span className="text-green-600 font-medium">+{entry.totalPoints}</span>
+                            ) : entry.totalPoints < 0 ? (
+                              <span className="text-red-600 font-medium">{entry.totalPoints}</span>
                             ) : (
                               <span className="text-gray-500 font-medium">0</span>
                             )}
@@ -709,12 +872,14 @@ const MatchLeaderboard = () => {
                                         <tr className="bg-gray-50 border-t border-gray-200">
                                           <td colSpan={3} className="p-3 text-right font-bold">Total Points</td>
                                           <td className="p-3 text-right font-bold w-1/12">
-                                            {entry.totalPoints > 0 ? (
-                                              <span className="text-green-600">{entry.totalPoints}</span>
-                                            ) : match.status !== 'completed' ? (
-                                              <span className="text-gray-500">Pending</span>
+                                            {match.status !== 'completed' ? (
+                                              <span className="text-gray-500 font-medium">Pending</span>
                                             ) : hasPendingEvaluations ? (
-                                              <span className="text-amber-600">Evaluating</span>
+                                              <span className="text-amber-600 font-medium">Evaluating</span>
+                                            ) : entry.totalPoints > 0 ? (
+                                              <span className="text-green-600">{entry.totalPoints}</span>
+                                            ) : entry.totalPoints < 0 ? (
+                                              <span className="text-red-600">{entry.totalPoints}</span>
                                             ) : (
                                               <span className="text-gray-500">0</span>
                                             )}
@@ -732,6 +897,35 @@ const MatchLeaderboard = () => {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Add pagination controls */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                  <div className="flex items-center text-sm text-gray-500">
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, filteredLeaderboard.length)} of {filteredLeaderboard.length} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={!hasMore}
+                      className="flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

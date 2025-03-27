@@ -33,8 +33,12 @@ export const COLLECTIONS = {
   MATCH_LEADERBOARDS: 'matchLeaderboards',
   ANSWERS: 'predictionAnswers',
   SYSTEM_SETTINGS: 'systemSettings',
-  GLOBAL_LEADERBOARD: 'globalLeaderboard'
+  GLOBAL_LEADERBOARD: 'globalLeaderboard',
+  WEEKLY_LEADERBOARD: 'weeklyLeaderboard'
 } as const;
+
+// Weekly Leaderboard Collection
+export const WEEKLY_LEADERBOARD = 'weeklyLeaderboard';
 
 // Type definitions
 export interface User {
@@ -1259,20 +1263,20 @@ export const evaluateMatchPredictions = async (matchId: string): Promise<void> =
         }
       }
       else if (questionType === 'highestTotal') {
-        // For "Will total exceed X?" questions
-        // Parse the total from result - this might be a number OR a yes/no answer
+        // For "Will total exceed 350 runs?" questions
         let actualExceeded = false;
         
-        // Handle different formats of the correct answer
-        if (typeof correctAnswer === 'number' || !isNaN(parseInt(correctAnswer as string))) {
-          // If the correct answer is a number (from admin input)
-          const actualTotal = parseInt(correctAnswer?.toString() || '0');
-          const defaultThreshold = 350;
-          actualExceeded = actualTotal > defaultThreshold;
-        } else if (typeof correctAnswer === 'string') {
-          // If the correct answer is already a string like 'yes'/'no' or 'true'/'false'
-          const answerLower = correctAnswer.toLowerCase();
-          actualExceeded = answerLower === 'yes' || answerLower === 'true';
+        // Calculate total runs from team scores
+        if (result.team1Score && result.team2Score) {
+          // Parse scores and handle any non-numeric characters (like wickets)
+          const team1Runs = parseInt(result.team1Score.split('/')[0]);
+          const team2Runs = parseInt(result.team2Score.split('/')[0]);
+          
+          if (!isNaN(team1Runs) && !isNaN(team2Runs)) {
+            const totalRuns = team1Runs + team2Runs;
+            console.log(`Total runs in match: ${totalRuns} (${team1Runs} + ${team2Runs})`);
+            actualExceeded = totalRuns > 350;
+          }
         }
         
         // Evaluate based on user's yes/no answer
@@ -1721,19 +1725,30 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
     // Calculate totals
     let totalPoints = 0;
     let correctPredictions = 0;
-    let totalPredictions = 0;
+    let totalAnsweredQuestions = 0;
     const matchesSet = new Set<string>();
     
     answersSnapshot.forEach((doc) => {
       const answer = doc.data();
-      totalPoints += answer.pointsEarned || 0;
-      if (answer.isCorrect) correctPredictions++;
-      totalPredictions++;
-      if (answer.matchId) matchesSet.add(answer.matchId);
+      // Only count answers that have been evaluated (isCorrect is defined)
+      if (answer.answer && answer.answer.trim() !== '' && answer.isCorrect !== undefined) {
+        totalPoints += answer.pointsEarned || 0;
+        if (answer.isCorrect) correctPredictions++;
+        totalAnsweredQuestions++;
+        if (answer.matchId) matchesSet.add(answer.matchId);
+      }
     });
     
-    // Calculate accuracy
-    const accuracy = totalPredictions > 0 ? (correctPredictions / totalPredictions) * 100 : 0;
+    // Calculate accuracy only based on answered and evaluated questions
+    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
+    
+    console.log(`Global stats calculated for ${userId}:`, {
+      totalPoints,
+      correctPredictions,
+      totalAnsweredQuestions,
+      accuracy,
+      uniqueMatches: matchesSet.size
+    });
     
     // Update or create global leaderboard entry
     const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
@@ -1743,7 +1758,7 @@ export const updateGlobalLeaderboard = async (userId: string, matchId: string) =
       photoURL: userData.data()?.photoURL,
       totalPoints,
       correctPredictions,
-      totalPredictions,
+      totalPredictions: totalAnsweredQuestions, // This now reflects actual answered questions
       accuracy,
       lastUpdated: serverTimestamp(),
       matchesPlayed: matchesSet.size
@@ -2022,5 +2037,187 @@ export const resetPredictions = async (userId: string, matchId: string): Promise
   } catch (error) {
     console.error('Error resetting predictions:', error);
     throw error;
+  }
+};
+
+// Helper function to get the current week's start and end dates (Monday to Sunday)
+export const getCurrentWeekDates = () => {
+  const now = new Date();
+  const currentDay = now.getDay();
+  // Adjust when Sunday (0) to be 7 for our calculation
+  const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+  
+  const weekStart = new Date(now.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0);
+  
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+  
+  return { weekStart, weekEnd };
+};
+
+// Update weekly leaderboard from prediction answers
+export const updateWeeklyLeaderboard = async (userId: string) => {
+  try {
+    console.log(`Updating weekly leaderboard for user ${userId}`);
+    const { weekStart, weekEnd } = getCurrentWeekDates();
+    console.log(`Week range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    
+    // Get user's global leaderboard entry
+    const globalLeaderboardRef = doc(db, COLLECTIONS.GLOBAL_LEADERBOARD, userId);
+    const globalLeaderboardData = await getDoc(globalLeaderboardRef);
+    
+    if (!globalLeaderboardData.exists()) {
+      console.error(`No global leaderboard entry found for user ${userId}`);
+      return;
+    }
+    
+    const globalData = globalLeaderboardData.data();
+    console.log(`Global leaderboard data for user:`, globalData);
+    
+    // Get all prediction answers for this user within the current week
+    const answersQuery = query(
+      collection(db, COLLECTIONS.ANSWERS),
+      where("userId", "==", userId)
+    );
+    
+    const answersSnapshot = await getDocs(answersQuery);
+    console.log(`Found ${answersSnapshot.size} total answers for user`);
+    
+    // Calculate totals for the week
+    let weeklyPoints = 0;
+    let correctPredictions = 0;
+    let totalAnsweredQuestions = 0;
+    const matchesWithAnswers = new Set<string>();
+    
+    // Process only answers that have actual predictions and are within the current week
+    answersSnapshot.forEach((doc) => {
+      const answer = doc.data();
+      const answerDate = answer.createdAt?.toDate();
+      
+      // Skip if answer is not within current week
+      if (!answerDate || answerDate < weekStart || answerDate > weekEnd) {
+        return;
+      }
+      
+      console.log(`Processing answer:`, {
+        matchId: answer.matchId,
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+        pointsEarned: answer.pointsEarned,
+        createdAt: answerDate.toISOString()
+      });
+      
+      // Only count if user actually submitted an answer and it has been evaluated
+      if (answer.answer && answer.answer.trim() !== '' && answer.isCorrect !== undefined) {
+        weeklyPoints += answer.pointsEarned || 0;
+        if (answer.isCorrect) {
+          correctPredictions++;
+        }
+        totalAnsweredQuestions++;
+        if (answer.matchId) {
+          matchesWithAnswers.add(answer.matchId);
+        }
+      }
+    });
+    
+    // Calculate accuracy only based on answered and evaluated questions
+    const accuracy = totalAnsweredQuestions > 0 ? Math.round((correctPredictions / totalAnsweredQuestions) * 100) : 0;
+    
+    console.log(`Weekly stats calculated for ${userId}:`, {
+      weeklyPoints,
+      correctPredictions,
+      totalAnsweredQuestions,
+      accuracy,
+      uniqueMatches: matchesWithAnswers.size
+    });
+    
+    // Update weekly leaderboard entry - completely overwrite the existing data
+    const weeklyLeaderboardRef = doc(db, COLLECTIONS.WEEKLY_LEADERBOARD, userId);
+    const weeklyData = {
+      userId,
+      displayName: globalData.displayName || "Anonymous User",
+      photoURL: globalData.photoURL,
+      weeklyPoints,
+      correctPredictions,
+      totalPredictions: totalAnsweredQuestions,
+      accuracy,
+      lastUpdated: serverTimestamp(),
+      weekStartDate: Timestamp.fromDate(weekStart),
+      weekEndDate: Timestamp.fromDate(weekEnd),
+      matchesPlayed: matchesWithAnswers.size
+    };
+    
+    console.log(`Overwriting weekly leaderboard with data for ${userId}:`, weeklyData);
+    
+    // Use setDoc without merge option to completely overwrite the document
+    await setDoc(weeklyLeaderboardRef, weeklyData);
+    
+    console.log(`Successfully updated weekly leaderboard for user ${userId}`);
+    
+  } catch (error) {
+    console.error("Error updating weekly leaderboard:", error);
+    throw error;
+  }
+};
+
+// Function for admin to manually update weekly leaderboard
+export const updateAllWeeklyLeaderboards = async () => {
+  try {
+    console.log("Starting manual update of weekly leaderboards...");
+    
+    // Get all global leaderboard entries
+    const globalLeaderboardRef = collection(db, COLLECTIONS.GLOBAL_LEADERBOARD);
+    const globalLeaderboardSnapshot = await getDocs(globalLeaderboardRef);
+    
+    // Process each user's data
+    const updatePromises = globalLeaderboardSnapshot.docs.map(async (doc) => {
+      const userId = doc.id;
+      try {
+        await updateWeeklyLeaderboard(userId);
+        console.log(`Updated weekly leaderboard for user ${userId}`);
+      } catch (error) {
+        console.error(`Error updating weekly leaderboard for user ${userId}:`, error);
+      }
+    });
+    
+    await Promise.all(updatePromises);
+    console.log("Completed manual update of weekly leaderboards");
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating all weekly leaderboards:", error);
+    throw error;
+  }
+};
+
+// Get all available weeks from weekly leaderboard
+export const getAvailableWeeks = async () => {
+  try {
+    const weeklyLeaderboardRef = collection(db, COLLECTIONS.WEEKLY_LEADERBOARD);
+    const snapshot = await getDocs(weeklyLeaderboardRef);
+    
+    const weeks = new Set<string>();
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.weekStartDate) {
+        const weekStart = data.weekStartDate.toDate();
+        const weekEnd = data.weekEndDate.toDate();
+        weeks.add(`${weekStart.toISOString()}_${weekEnd.toISOString()}`);
+      }
+    });
+    
+    return Array.from(weeks).map(week => {
+      const [start, end] = week.split('_');
+      return {
+        start: new Date(start),
+        end: new Date(end)
+      };
+    }).sort((a, b) => b.start.getTime() - a.start.getTime()); // Sort by most recent first
+    
+  } catch (error) {
+    console.error("Error getting available weeks:", error);
+    return [];
   }
 };

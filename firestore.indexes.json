@@ -1,4 +1,14 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "weeklyLeaderboard",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "weekStartDate", "order": "ASCENDING" },
+        { "fieldPath": "weekEndDate", "order": "ASCENDING" },
+        { "fieldPath": "weeklyPoints", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

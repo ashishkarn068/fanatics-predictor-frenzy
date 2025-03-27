@@ -223,7 +223,7 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
         setLoading(false);
       }
     };
-
+    
     // Process squad data from team document
     const processSquad = (teamData: FirestoreTeam, teamIdentifier: string): Player[] => {
       if (!teamData.squad || Object.keys(teamData.squad).length === 0) {
@@ -387,15 +387,15 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
 
   return (
     <Tabs defaultValue="predictions" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="predictions">Make Predictions</TabsTrigger>
-        <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-        <TabsTrigger value="scoring">Scoring System</TabsTrigger>
-      </TabsList>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+          <TabsTrigger value="scoring">Scoring System</TabsTrigger>
+        </TabsList>
       
       <TabsContent value="predictions">
-        <PredictionGame 
-          match={match} 
+            <PredictionGame 
+              match={match} 
           teams={{ 
             team1: team1 ? {
               id: team1.id,
@@ -419,17 +419,17 @@ export default function MatchPredictions({ match, players, squad1 = [], squad2 =
           players={[]}
           squad1={team1Players}
           squad2={team2Players}
-          loading={loading}
-        />
-      </TabsContent>
+              loading={loading} 
+            />
+        </TabsContent>
       
-      <TabsContent value="leaderboard">
-        <Leaderboard matchId={match.id} />
-      </TabsContent>
+        <TabsContent value="leaderboard">
+            <Leaderboard matchId={match.id} />
+        </TabsContent>
       
-      <TabsContent value="scoring">
-        <ScoringSystem />
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="scoring">
+            <ScoringSystem />
+        </TabsContent>
+      </Tabs>
   );
 }

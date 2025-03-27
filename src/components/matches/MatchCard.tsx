@@ -106,20 +106,56 @@ const MatchCard = ({ match }: MatchCardProps) => {
 
   // Display match result for completed matches
   const renderMatchResult = () => {
-    if (match.status === "completed" && match.result) {
-      // Format the result as a string
-      let resultText = `${match.result.winner} won`;
-      
-      // Add scores if available
-      if (match.result.team1Score && match.result.team2Score) {
-        resultText += ` (${match.result.team1Score} - ${match.result.team2Score})`;
+    if (match.status === "completed") {
+      if (match.result) {
+        const isTeam1Winner = match.result.winner === match.team1;
+        const isTeam2Winner = match.result.winner === match.team2;
+        
+        return (
+          <div className="relative mt-2">
+            {/* Winner Trophy Animation */}
+            <div className="absolute top-0 left-0 right-0 flex justify-center">
+              <div className={`transform -translate-y-1/2 ${isTeam1Winner ? 'left-16' : isTeam2Winner ? 'right-16' : ''}`}>
+                <div className="animate-bounce">
+                  <Trophy className="h-6 w-6 text-yellow-500 filter drop-shadow" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Score Display */}
+            <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-3">
+              <div className={`text-sm font-semibold ${isTeam1Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {match.result.team1Score || '0'}
+              </div>
+              <div className="text-xs text-gray-500">vs</div>
+              <div className={`text-sm font-semibold ${isTeam2Winner ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {match.result.team2Score || '0'}
+              </div>
+            </div>
+            
+            {/* Winner Text */}
+            <div className="text-center mt-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200">
+                {match.result.winner} won
+              </span>
+            </div>
+          </div>
+        );
+      } else {
+        // Show "Results awaiting" message for completed matches without results
+        return (
+          <div className="mt-2">
+            <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-600">Results awaiting</div>
+            </div>
+            <div className="text-center mt-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                Match completed
+              </span>
+            </div>
+          </div>
+        );
       }
-      
-      return (
-        <div className="text-sm text-center font-medium mt-2 text-gray-700">
-          {resultText}
-        </div>
-      );
     }
     return null;
   };

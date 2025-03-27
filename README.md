@@ -1,69 +1,175 @@
-# Welcome to your Lovable project
+# IPL Predictor Frenzy
 
-## Project info
+A modern, interactive cricket prediction platform where fans can predict match outcomes and compete on leaderboards.
 
-**URL**: https://lovable.dev/projects/84abb5b8-5dd3-45d4-88a4-a3f32fb0712d
+![IPL Predictor](https://i.imgur.com/placeholder.png)
 
-## How can I edit this code?
+## 🏏 Overview
 
-There are several ways of editing your application.
+IPL Predictor Frenzy is a web application that allows cricket enthusiasts to make predictions about IPL matches, compete with friends, and track their performance on various leaderboards. Users can predict match winners, top performers, and other statistics for upcoming cricket matches.
 
-**Use Lovable**
+## ✨ Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/84abb5b8-5dd3-45d4-88a4-a3f32fb0712d) and start prompting.
+- **Match Predictions**: Make predictions for upcoming IPL matches
+- **Player Selection**: Select players for performance-based questions with team logos for easy identification
+- **Real-time Leaderboards**: Three types of leaderboards (Match, Weekly, Season)
+- **Points System**: Earn points for correct predictions with negative points for incorrect ones
+- **Admin Dashboard**: Admin users can update match results and evaluate predictions
+- **User Authentication**: Secure Firebase-based authentication
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🧩 Core Components
 
-**Use your preferred IDE**
+### Prediction System
+- Make predictions up to 24 hours before match start
+- Reset predictions up to 5 minutes before match time
+- Various prediction types (match winner, top batsman/bowler, sixes, etc.)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Leaderboards
+- **Match Leaderboard**: Rankings for individual match predictions
+- **Weekly Leaderboard**: Performance across a weekly time frame
+- **Season Leaderboard**: Global rankings for the entire season
+- Ranking criteria: Points (highest first) → Accuracy (highest first) → Name (alphabetical)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Admin Features
+- Update match results
+- Evaluate user predictions
+- Reset match data if needed
+- Manage player data and teams
 
-Follow these steps:
+## 🛠️ Technical Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: React with TypeScript
+- **UI Framework**: Custom components with shadcn/ui
+- **State Management**: React Context API
+- **Backend**: Firebase (Firestore)
+- **Authentication**: Firebase Auth
+- **Hosting**: Firebase Hosting
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📦 Project Structure
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/       # UI components
+│   ├── admin/        # Admin-specific components
+│   ├── auth/         # Authentication components
+│   ├── leaderboard/  # Leaderboard components
+│   ├── matches/      # Match display components
+│   ├── predictions/  # Prediction components
+│   └── ui/           # Reusable UI components
+├── contexts/         # React contexts
+├── hooks/            # Custom React hooks
+├── lib/              # Helper libraries and type definitions
+├── pages/            # Page components
+├── utils/            # Utility functions
+└── styles/           # Global styles
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Getting Started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Prerequisites
+- Node.js (v14+)
+- npm or yarn
 
-**Use GitHub Codespaces**
+### Installation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Clone the repository
+```bash
+git clone https://github.com/username/fanatics-predictor-frenzy.git
+cd fanatics-predictor-frenzy
+```
 
-## What technologies are used for this project?
+2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
 
-This project is built with .
+3. Create a `.env` file with your Firebase configuration
+```
+REACT_APP_FIREBASE_API_KEY=your-api-key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your-auth-domain
+REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+REACT_APP_FIREBASE_APP_ID=your-app-id
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+4. Start the development server
+```bash
+npm run dev
+# or
+yarn dev
+```
 
-## How can I deploy this project?
+## 📱 Screenshots
 
-Simply open [Lovable](https://lovable.dev/projects/84abb5b8-5dd3-45d4-88a4-a3f32fb0712d) and click on Share -> Publish.
+| Home Page | Match Predictions | Leaderboard |
+|-----------|-------------------|-------------|
+| ![Home](https://i.imgur.com/placeholder.png) | ![Predictions](https://i.imgur.com/placeholder.png) | ![Leaderboard](https://i.imgur.com/placeholder.png) |
 
-## I want to use a custom domain - is that possible?
+## 🔐 Authentication
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+The application uses Firebase Authentication for user management. Users can:
+- Sign up with email and password
+- Sign in with existing accounts
+- Link accounts with social providers (Google, Facebook)
+- Reset password
+
+## 📊 Scoring System
+
+| Prediction Type | Correct | Incorrect |
+|-----------------|---------|-----------|
+| Match Winner    | +10 pts | -2 pts    |
+| Top Batsman     | +15 pts | -2 pts    |
+| Top Bowler      | +15 pts | -2 pts    |
+| Total Runs      | +15 pts | -2 pts    |
+| Team with more sixes | +10 pts | -2 pts |
+| Special Events  | Varies  | Varies    |
+
+## 🔄 Data Flow
+
+1. User makes predictions for an upcoming match
+2. Match occurs in real life
+3. Admin updates match results in the system
+4. System evaluates predictions and awards points
+5. Leaderboards are updated automatically
+6. Users can view their performance and global rankings
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+# or
+yarn test
+```
+
+## 🛣️ Roadmap
+
+- [ ] Advanced statistics and user insights
+- [ ] Social features (comments, sharing)
+- [ ] Push notifications for match reminders
+- [ ] Additional prediction categories
+- [ ] Mobile app version
+
+## 👥 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgements
+
+- [IPL Official](https://www.iplt20.com/) - Match data and team information
+- [shadcn/ui](https://ui.shadcn.com/) - UI component primitives
+- [Lucide Icons](https://lucide.dev/) - Beautiful icon set

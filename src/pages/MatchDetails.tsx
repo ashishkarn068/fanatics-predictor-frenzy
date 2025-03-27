@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDateTime, getTeamById, getMatchStatus } from "@/lib/utils";
-import { Match, Team, Player } from "@/lib/types";
+import { Match, Team, Player, MatchResult } from "@/lib/types";
 import MatchPredictions from "@/components/predictions/MatchPredictions";
 import { useToast } from "@/hooks/use-toast";
 import { db, auth } from "@/lib/firebase";
@@ -260,7 +260,7 @@ const MatchDetails = () => {
               ? matchData.date.toDate().toISOString() 
               : new Date().toISOString(),
           status: matchData.status || 'upcoming',
-          result: matchData.result?.winner || ''
+          result: matchData.result as MatchResult | null
         };
 
         // Update state with fetched data
@@ -458,16 +458,47 @@ const MatchDetails = () => {
 
             <div className="flex flex-col items-center justify-center md:w-1/3">
               <div className="text-3xl font-bold mb-2">VS</div>
-              {match.status === 'completed' && match.result && (
-                <Alert className="mt-4">
-                  <AlertDescription>{match.result}</AlertDescription>
-                </Alert>
+              {match.status === 'completed' && match.result && 'winner' in match.result && (
+                <div className="flex flex-col items-center space-y-4 mt-8">
+                  {/* Score Display with Trophy */}
+                  <div className="relative w-full max-w-xl">
+                    {/* Trophy Container - Positioned above scores */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                      <Trophy className="w-8 h-8 text-yellow-500 animate-bounce" />
+                    </div>
+                    
+                    {/* Score Container */}
+                    <div className="flex items-center justify-between w-full bg-gradient-to-r from-blue-50 via-white to-blue-50 rounded-lg p-6 shadow-md">
+                      {/* Team 1 Score */}
+                      <div className={`text-2xl font-bold ${match.result.winner === match.team1Id ? 'text-yellow-600' : 'text-gray-600'}`}>
+                        {match.result.team1Score || '0'}
+                      </div>
+                      
+                      {/* VS Separator */}
+                      <div className="text-xl font-medium text-gray-500 mx-4">
+                        vs
+                      </div>
+                      
+                      {/* Team 2 Score */}
+                      <div className={`text-2xl font-bold ${match.result.winner === match.team2Id ? 'text-yellow-600' : 'text-gray-600'}`}>
+                        {match.result.team2Score || '0'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Winner Announcement */}
+                  <div className="bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 px-6 py-3 rounded-full border border-yellow-200 shadow-sm">
+                    <span className="text-lg font-semibold text-yellow-800">
+                      {match.result.winner} won the match!
+                    </span>
+                  </div>
+                </div>
               )}
               
               {/* Match Leaderboard Button */}
               <Button 
                 variant="outline"
-                className="mt-4"
+                className="mt-6"
                 onClick={() => navigate(`/matches/${id}/leaderboard`)}
               >
                 <Trophy className="mr-2 h-4 w-4" />
@@ -501,6 +532,11 @@ const MatchDetails = () => {
             <div className="bg-gray-50 rounded-lg p-6 text-center mb-6">
               <p className="text-lg text-gray-600">This match has ended. No more predictions can be made.</p>
               <p className="text-gray-500 mt-2">You can still view the leaderboard and scoring system below.</p>
+            </div>
+          ) : match.status === 'live' ? (
+            <div className="bg-yellow-50 rounded-lg p-6 text-center mb-6">
+              <p className="text-lg text-yellow-600">Match is in progress. Predictions are now closed.</p>
+              <p className="text-yellow-500 mt-2">Stay tuned for results and check the leaderboard once the match ends.</p>
             </div>
           ) : null}
           

@@ -29,9 +29,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Trophy } from "lucide-react";
+import { ChevronDown, Trophy, Info, Calendar } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { COLLECTIONS } from "@/utils/firestore-collections";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 interface LeaderboardProps {
   matchId?: string;
@@ -51,12 +58,22 @@ interface EnhancedLeaderboardEntry extends LeaderboardEntry {
 }
 
 export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<string>(matchId ? "match" : "season");
   const [leaderboard, setLeaderboard] = useState<EnhancedLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Map<string, {text: string, points: number}>>(new Map());
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+  // Add debug logging for currentUser
+  useEffect(() => {
+    console.log('Current User:', {
+      uid: currentUser?.uid,
+      displayName: currentUser?.displayName,
+      isAuthenticated: !!currentUser
+    });
+  }, [currentUser]);
 
   useEffect(() => {
       setLoading(true);
@@ -446,12 +463,11 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
       return onSnapshot(leaderboardQuery, (snapshot) => {
         const entries: EnhancedLeaderboardEntry[] = [];
         
-        let position = 1;
         snapshot.forEach((docSnapshot) => {
           const userData = docSnapshot.data();
           
           entries.push({
-            position: position++,
+            position: 0, // Will be set after sorting
             userId: userData.userId,
             userName: userData.displayName || "Anonymous User",
             userAvatar: userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'A')}&background=random`,
@@ -459,11 +475,32 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             correctPredictions: userData.correctPredictions || 0,
             totalPredictions: userData.totalPredictions || 0,
             accuracy: userData.accuracy || 0,
-            streak: 0, // Not tracked in global leaderboard
-          trend: "neutral"
+            streak: 0,
+            trend: "neutral"
+          });
         });
-      });
-      
+
+        // Sort entries considering all three criteria
+        entries.sort((a, b) => {
+          // First, compare by total points
+          if (b.points !== a.points) {
+            return b.points - a.points;
+          }
+          
+          // If points are equal, compare by accuracy
+          if (b.accuracy !== a.accuracy) {
+            return b.accuracy - a.accuracy;
+          }
+          
+          // If both points and accuracy are equal, sort by name alphabetically
+          return a.userName.localeCompare(b.userName);
+        });
+
+        // Set positions after sorting
+        entries.forEach((entry, index) => {
+          entry.position = index + 1;
+        });
+        
         setLeaderboard(entries);
         setLoading(false);
       });
@@ -487,6 +524,13 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             const userData = docSnapshot.data();
             const position = entries.length + 1;
             
+            // Debug log for fallback entries
+            console.log('Fallback Entry:', {
+              userId: userData.uid,
+              displayName: userData.displayName,
+              matchesCurrentUser: currentUser?.uid === userData.uid
+            });
+            
             entries.push({
               position,
               userId: userData.uid,
@@ -501,6 +545,13 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
         });
       });
       
+          // Debug log for final fallback entries
+          console.log('Final Fallback Leaderboard:', {
+            totalEntries: entries.length,
+            currentUserEntry: entries.find(e => e.userId === currentUser?.uid),
+            allUserIds: entries.map(e => e.userId)
+          });
+          
           setLeaderboard(entries);
           setLoading(false);
         });
@@ -522,30 +573,71 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
   };
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-xl">Prediction Leaderboard</CardTitle>
-        <CardDescription>
-          See who's leading in the prediction challenge
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2 mb-4">
-            {matchId && <TabsTrigger value="match">This Match</TabsTrigger>}
-            <TabsTrigger value="season">Global</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="match" className="space-y-4">
-            {renderMatchLeaderboard()}
-          </TabsContent>
-          
-          <TabsContent value="season" className="space-y-4">
-            {renderStandardLeaderboard()}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Leaderboard</h1>
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">How Rankings are Determined</h4>
+                <p className="text-sm text-muted-foreground">
+                  Players are ranked based on the following criteria in order:
+                </p>
+                <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                  <li>Total points earned (highest first)</li>
+                  <li>Prediction accuracy percentage (highest first)</li>
+                  <li>Player name (alphabetically) if points and accuracy are equal</li>
+                </ol>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-10 items-center bg-muted mb-4 rounded-lg p-1">
+          <TabsTrigger 
+            value="match" 
+            className="flex items-center gap-2 data-[state=active]:bg-background rounded-md"
+          >
+            <Trophy className="h-4 w-4" />
+            Match
+          </TabsTrigger>
+          <TabsTrigger 
+            value="season" 
+            className="flex items-center gap-2 data-[state=active]:bg-background rounded-md"
+          >
+            <Calendar className="h-4 w-4" />
+            Season
+          </TabsTrigger>
+          <TabsTrigger 
+            value="week" 
+            className="flex items-center gap-2 data-[state=active]:bg-background rounded-md"
+          >
+            <Calendar className="h-4 w-4" />
+            This Week
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="match" className="mt-0">
+          {renderMatchLeaderboard()}
+        </TabsContent>
+        
+        <TabsContent value="season" className="mt-0">
+          {renderStandardLeaderboard()}
+        </TabsContent>
+
+        <TabsContent value="week" className="mt-0">
+          {renderStandardLeaderboard()}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
   
   function renderMatchLeaderboard() {
@@ -607,12 +699,19 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                   
                   <div className="col-span-5 flex items-center space-x-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={entry.userAvatar} alt={entry.userName} />
+                      <AvatarImage 
+                        src={entry.userAvatar} 
+                        alt={entry.userName} 
+                        referrerPolicy="no-referrer"
+                      />
                       <AvatarFallback>
-                        {entry.userName.split(' ').map(n => n[0]).join('')}
+                        {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium truncate">{entry.userName}</span>
+                    {currentUser?.uid === entry.userId && (
+                      <Badge variant="outline" className="ml-2">You</Badge>
+                    )}
                     <ChevronDown className={`h-4 w-4 transition-transform ${expandedUser === entry.userId ? 'transform rotate-180' : ''}`} />
                   </div>
                   
@@ -633,7 +732,7 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                           : 'bg-gray-50 text-gray-700 border-gray-200'
                       }
                     `}>
-                      {entry.accuracy}%
+                      {Math.round(entry.accuracy)}%
                     </Badge>
                   </div>
                 </div>
@@ -741,12 +840,19 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
             
             <div className="col-span-5 flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={entry.userAvatar} alt={entry.userName} />
+                <AvatarImage 
+                  src={entry.userAvatar} 
+                  alt={entry.userName} 
+                  referrerPolicy="no-referrer"
+                />
                 <AvatarFallback>
-                  {entry.userName.split(' ').map(n => n[0]).join('')}
+                  {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="font-medium truncate">{entry.userName}</span>
+              {currentUser?.uid === entry.userId && (
+                <Badge variant="outline" className="ml-2">You</Badge>
+              )}
             </div>
             
             <div className="col-span-2 text-right font-semibold">
@@ -766,7 +872,7 @@ export default function Leaderboard({ matchId, limit = 10 }: LeaderboardProps) {
                     : 'bg-gray-50 text-gray-700 border-gray-200'
                 }
               `}>
-                {entry.accuracy}%
+                {Math.round(entry.accuracy)}%
               </Badge>
             </div>
           </div>

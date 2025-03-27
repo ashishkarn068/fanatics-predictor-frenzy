@@ -31,6 +31,7 @@ import { standardizePlayerName } from '@/utils/firestore-collections';
 import { isMatchWithinPredictionWindow, isPredictionAllowed } from '@/lib/utils';
 import { resetPredictions, canResetPredictions } from "@/utils/firestore-collections";
 import { cn } from "@/lib/utils";
+import { getTeamLogoUrl } from "@/utils/team-utils";
 
 interface PredictionGameProps {
   match: Match;
@@ -345,7 +346,7 @@ export default function PredictionGame({
     // For player-based questions (topBatsman, topBowler), standardize the player name format
     if (question.type === 'topBatsman' || question.type === 'topBowler') {
       // Don't standardize special values
-      if (!value.startsWith('any-') && !value.startsWith('no-')) {
+      if (!value.startsWith('no-')) {
         const originalAnswer = value;
         const standardizedAnswer = standardizePlayerName(value);
         console.log(`Storing standardized player for ${question.type}:`);
@@ -677,7 +678,7 @@ export default function PredictionGame({
     if (question.type === 'topBatsman' || question.type === 'topBowler') {
       // Get filtered players based on question type
       const filteredPlayers = question.type === 'topBatsman' ? getBatsmen() : getBowlers();
-
+      
       return (
         <Select 
           value={answers[question.id] || userAnswer} 
@@ -688,28 +689,60 @@ export default function PredictionGame({
             <SelectValue placeholder="Select a player" />
           </SelectTrigger>
           <SelectContent>
-            {/* Team 1 Players */}
+            {/* Team 1 Players Header */}
             <SelectItem value="team1-header" disabled className="font-bold text-primary">
-              {team1?.name || match.team1Id}
+              <div className="flex items-center">
+                <img 
+                  src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                  alt={team1?.name || match.team1Id}
+                  className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                />
+                {team1?.name || match.team1Id}
+              </div>
             </SelectItem>
+            
+            {/* Team 1 Players */}
             {filteredPlayers
               .filter(p => p.teamId === match.team1Id)
               .map(player => (
-                <SelectItem key={player.id} value={player.name}>
-                  {player.name}
+                <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                  <div className="flex items-center">
+                    <img 
+                      src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                      alt={team1?.name || match.team1Id}
+                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                    />
+                    {player.name}
+                  </div>
                 </SelectItem>
               ))
             }
             
-            {/* Team 2 Players */}
+            {/* Team 2 Players Header */}
             <SelectItem value="team2-header" disabled className="font-bold text-primary">
-              {team2?.name || match.team2Id}
+              <div className="flex items-center">
+                <img 
+                  src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                  alt={team2?.name || match.team2Id}
+                  className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                />
+                {team2?.name || match.team2Id}
+              </div>
             </SelectItem>
+            
+            {/* Team 2 Players */}
             {filteredPlayers
               .filter(p => p.teamId === match.team2Id)
               .map(player => (
-                <SelectItem key={player.id} value={player.name}>
-                  {player.name}
+                <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                  <div className="flex items-center">
+                    <img 
+                      src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                      alt={team2?.name || match.team2Id}
+                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                    />
+                    {player.name}
+                  </div>
                 </SelectItem>
               ))
             }
@@ -729,13 +762,23 @@ export default function PredictionGame({
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-            <Label htmlFor={`${question.id}-team1`}>
+            <Label htmlFor={`${question.id}-team1`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                alt={team1?.name || match.team1Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team1?.name || match.team1Id}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-            <Label htmlFor={`${question.id}-team2`}>
+            <Label htmlFor={`${question.id}-team2`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                alt={team2?.name || match.team2Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team2?.name || match.team2Id}
             </Label>
           </div>
@@ -827,13 +870,23 @@ export default function PredictionGame({
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team1Id} id={`${question.id}-team1`} />
-            <Label htmlFor={`${question.id}-team1`}>
+            <Label htmlFor={`${question.id}-team1`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                alt={team1?.name || match.team1Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team1?.name || match.team1Id}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value={match.team2Id} id={`${question.id}-team2`} />
-            <Label htmlFor={`${question.id}-team2`}>
+            <Label htmlFor={`${question.id}-team2`} className="flex items-center">
+              <img 
+                src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                alt={team2?.name || match.team2Id}
+                className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+              />
               {team2?.name || match.team2Id}
             </Label>
           </div>
@@ -920,33 +973,16 @@ export default function PredictionGame({
     <div className="space-y-6">
         <h2 className="text-2xl font-bold mb-4">Make Your Predictions</h2>
         
-        {new Date(match.date) <= new Date() ? (
-          <div className="bg-red-100 dark:bg-red-900 p-4 rounded-md mb-6">
-            <p className="text-red-800 dark:text-red-200 font-medium">
-              This game has ended. You cannot make predictions.
-            </p>
+        {match.status === 'completed' && (
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <p className="text-lg text-gray-600">This game has ended. You cannot make predictions.</p>
           </div>
-        ) : isPredictionLocked ? (
-          <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Predictions are locked as the match has {match.status === "completed" ? "ended" : "started"}.
-              {userAnswers.length > 0 ? " Your predictions are displayed below." : ""}
-            </p>
+        )}
+        {match.status === 'live' && (
+          <div className="bg-red-50 rounded-lg p-4 mb-6">
+            <p className="text-lg text-red-600">Match is currently in progress. Predictions are closed.</p>
           </div>
-      ) : !isWithinPredictionWindow ? (
-        <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-md mb-6">
-          <p className="text-yellow-800 dark:text-yellow-200">
-            Predictions will open 24 hours before the match starts. 
-            Please check back later to submit your predictions.
-          </p>
-        </div>
-      ) : hasPredicted ? (
-        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
-          <p className="text-blue-800 dark:text-blue-200">
-            You've already submitted predictions for this match. Your predictions are displayed below and cannot be modified.
-            </p>
-          </div>
-        ) : null}
+        )}
         
         {!user ? (
           <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-md mb-6">
@@ -1005,26 +1041,20 @@ export default function PredictionGame({
           {hasPredicted && (
             <>
               <ul className="space-y-2 mb-4">
-                {userAnswers.map(answer => {
-                  const question = questions.find(q => q.id === answer.questionId);
-                  if (!question) return null;
-                  
-                  let displayAnswer = answer.answer;
-                  
-                  // Format the answer for display
-                  if (question.type === 'winner') {
-                    displayAnswer = answer.answer === match.team1Id 
+            {userAnswers.map(answer => {
+              const question = questions.find(q => q.id === answer.questionId);
+              if (!question) return null;
+              
+              let displayAnswer = answer.answer;
+              
+              // Format the answer for display
+              if (question.type === 'winner') {
+                displayAnswer = answer.answer === match.team1Id 
                       ? (team1?.name || match.team1Id) 
                       : (team2?.name || match.team2Id);
                   } else if (question.type === 'topBatsman' || question.type === 'topBowler') {
-                    if (answer.answer === 'any-team1') {
-                      displayAnswer = `Any ${team1?.name || match.team1Id} Player`;
-                    } else if (answer.answer === 'any-team2') {
-                      displayAnswer = `Any ${team2?.name || match.team2Id} Player`;
-                    } else {
                       // Just display the player name without team name
                       displayAnswer = answer.answer;
-                    }
                   } else if (question.type === 'highestTotal') {
                     displayAnswer = answer.answer ? `${answer.answer} runs` : 'No prediction';
                   } else if (question.type === 'moreSixes') {
@@ -1034,48 +1064,52 @@ export default function PredictionGame({
                       displayAnswer = team1?.name || match.team1Id;
                     } else if (answer.answer === match.team2Id) {
                       displayAnswer = team2?.name || match.team2Id;
-                    }
-                  } else if (question.options) {
-                    const option = question.options.find(o => o.value === answer.answer);
-                    if (option) {
-                      displayAnswer = option.label;
-                    }
-                  }
-                  
-                  return (
-                    <li key={answer.id} className="flex flex-col">
-                      <span className="font-medium">{question.text}</span>
-                      <span className="text-sm">Your answer: {displayAnswer}</span>
-                      {answer.isCorrect !== undefined && (
-                        <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                }
+              } else if (question.options) {
+                const option = question.options.find(o => o.value === answer.answer);
+                if (option) {
+                  displayAnswer = option.label;
+                }
+              }
+              
+              return (
+                <li key={answer.id} className="flex flex-col">
+                  <span className="font-medium">{question.text}</span>
+                  <span className="text-sm">Your answer: {displayAnswer}</span>
+                  {answer.isCorrect !== undefined && (
+                    <span className={`text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
                           {answer.isCorrect 
                             ? `Correct (+${answer.pointsEarned || question.points} points)`
                             : answer.pointsEarned < 0
                               ? `Incorrect (${answer.pointsEarned} points)`
                               : 'Incorrect'
                           }
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
               
               {/* Add Reset Button */}
               <div className="mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetPredictions}
-                  disabled={isSubmitting}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  <RefreshCw className="mr-1 h-3 w-3" /> 
-                  Reset Predictions
-                </Button>
-                <p className="text-xs text-gray-500 mt-1">
-                  You can reset your predictions until 5 minutes before the match starts.
-                </p>
+                {!isPredictionLocked && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetPredictions}
+                    disabled={isSubmitting}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" /> 
+                    Reset Predictions
+                  </Button>
+                )}
+                {!isPredictionLocked && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    You can reset your predictions until 5 minutes before the match starts.
+                  </p>
+                )}
               </div>
             </>
           )}
