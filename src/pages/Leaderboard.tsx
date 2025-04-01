@@ -19,7 +19,7 @@ import { getMatches, COLLECTIONS } from "@/utils/firestore-collections";
 import { Match as FirestoreMatch } from "@/utils/firestore-collections";
 import { Timestamp, collection, getDocs, query, where, orderBy, limit, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import WeeklyLeaderboard from "@/components/predictions/WeeklyLeaderboard";
+import WeeklyLeaderboard from "../components/predictions/WeeklyLeaderboard";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {

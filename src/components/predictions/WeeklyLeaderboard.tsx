@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, limit, startAfter, getDocs, onSnapshot, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { COLLECTIONS, updateAllWeeklyLeaderboards, getAvailableWeeks } from "@/utils/firestore-collections";
+import { COLLECTIONS, updateAllWeeklyLeaderboards, getAvailableWeeks, updateWeeklyLeaderboardForDateRange } from "@/utils/firestore-collections";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Loader2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Info, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { FirebaseError } from "firebase/app";
 import { isUserAdmin } from "@/utils/admin-auth";
@@ -41,6 +41,9 @@ interface WeeklyLeaderboardProps {
   pageSize?: number;
 }
 
+// Define CSS class for the trophy animation
+const trophyAnimationClass = "animate-bounce text-yellow-500";
+
 export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<WeeklyLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +55,7 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
   const { currentUser } = useAuth();
   const [weekRange, setWeekRange] = useState<{ start: Date; end: Date } | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<{ start: Date; end: Date }[]>([]);
-  const [selectedWeekId, setSelectedWeekId] = useState<string>('current');
+  const [selectedWeekId, setSelectedWeekId] = useState<string>('0');
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Check if user is admin
@@ -77,12 +80,105 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
   // Get available weeks
   useEffect(() => {
     const loadWeeks = async () => {
-      const weeks = await getAvailableWeeks();
-      setAvailableWeeks(weeks);
-      if (weeks.length > 0 && !weekRange) {
-        setWeekRange(weeks[0]); // Set most recent week as default
+      try {
+        // Get all matches to determine weeks with matches
+        const matchesRef = collection(db, COLLECTIONS.MATCHES);
+        const matchesQuery = query(matchesRef, orderBy('date', 'asc'));
+        const matchesSnapshot = await getDocs(matchesQuery);
+        
+        // Extract all match dates and statuses
+        const matches = matchesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date),
+            status: data.status
+          };
+        });
+        
+        // Filter to get only completed matches
+        const completedMatchDates = matches
+          .filter(match => match.status === 'completed')
+          .map(match => match.date);
+        
+        // If no completed matches, return early
+        if (completedMatchDates.length === 0) {
+          setAvailableWeeks([]);
+          return;
+        }
+        
+        // Find earliest and latest match dates
+        const earliestMatch = new Date(Math.min(...completedMatchDates.map(d => d.getTime())));
+        const latestMatch = new Date(Math.max(...completedMatchDates.map(d => d.getTime())));
+        
+        // Set earliest Monday of the week containing the first match
+        const firstWeekStart = new Date(earliestMatch);
+        firstWeekStart.setDate(firstWeekStart.getDate() - (firstWeekStart.getDay() === 0 ? 6 : firstWeekStart.getDay() - 1));
+        firstWeekStart.setHours(0, 0, 0, 0);
+        
+        // Create all possible Monday-Sunday weeks
+        const weeks: { start: Date; end: Date }[] = [];
+        let weekIterator = new Date(firstWeekStart);
+        
+        while (weekIterator <= latestMatch) {
+          // Create week end (Sunday)
+          const weekEnd = new Date(weekIterator);
+          weekEnd.setDate(weekEnd.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+          
+          // Check if any completed match occurred in this week
+          const hasCompletedMatchesInWeek = completedMatchDates.some(date => 
+            date >= weekIterator && date <= weekEnd
+          );
+          
+          // Only add weeks with completed matches
+          if (hasCompletedMatchesInWeek) {
+            weeks.push({
+              start: new Date(weekIterator),
+              end: new Date(weekEnd)
+            });
+          }
+          
+          // Move to next Monday
+          weekIterator.setDate(weekIterator.getDate() + 7);
+        }
+        
+        // Sort weeks in reverse chronological order (newest first)
+        weeks.sort((a, b) => b.start.getTime() - a.start.getTime());
+        
+        setAvailableWeeks(weeks);
+        
+        // Get current week (Monday-Sunday)
+        const today = new Date();
+        const currentWeekStart = new Date(today);
+        currentWeekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+        currentWeekStart.setHours(0, 0, 0, 0);
+        
+        const currentWeekEnd = new Date(currentWeekStart);
+        currentWeekEnd.setDate(currentWeekEnd.getDate() + 6);
+        currentWeekEnd.setHours(23, 59, 59, 999);
+        
+        // Find current week in available weeks
+        const currentWeekIndex = weeks.findIndex(week => 
+          week.start.getTime() === currentWeekStart.getTime() && 
+          week.end.getTime() === currentWeekEnd.getTime()
+        );
+        
+        if (currentWeekIndex !== -1) {
+          // If current week is found, set it as default
+          setWeekRange(weeks[currentWeekIndex]);
+          // Calculate the index in the reversed list
+          const reversedIndex = weeks.length - 1 - currentWeekIndex;
+          setSelectedWeekId(reversedIndex.toString());
+        } else if (weeks.length > 0) {
+          // If current week not found, use most recent week
+          setWeekRange(weeks[0]);
+          setSelectedWeekId('0');
+        }
+      } catch (error) {
+        console.error("Error loading weeks:", error);
       }
     };
+    
     loadWeeks();
   }, []);
 
@@ -208,13 +304,10 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
     setCurrentPage(1);
     setLastVisible(null);
     
-    if (weekId === 'current') {
-      const currentWeek = availableWeeks[0]; // Most recent week
-      setWeekRange(currentWeek);
-    } else {
-      const selectedWeek = availableWeeks[parseInt(weekId)];
-      setWeekRange(selectedWeek);
-    }
+    const reversedIndex = parseInt(weekId);
+    const originalIndex = availableWeeks.length - 1 - reversedIndex;
+    const selectedWeek = availableWeeks[originalIndex];
+    setWeekRange(selectedWeek);
   };
 
   const getAccuracyColor = (accuracy: number) => {
@@ -224,12 +317,23 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
   };
 
   const handleManualUpdate = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !weekRange) return;
     
     try {
       setUpdating(true);
-      await updateAllWeeklyLeaderboards();
-      toast.success("Weekly leaderboard updated successfully");
+      // Use the new function to update only the selected week
+      await updateWeeklyLeaderboardForDateRange(weekRange.start, weekRange.end);
+      toast.success(`Weekly leaderboard updated for ${format(weekRange.start, "MMM d")} - ${format(weekRange.end, "MMM d, yyyy")}`);
+      
+      // Reset to first page and refresh the data
+      setCurrentPage(1);
+      setLastVisible(null);
+      
+      // Force a refresh of the leaderboard data by temporarily setting weekRange to null and back
+      setWeekRange(null);
+      setTimeout(() => {
+        setWeekRange(weekRange);
+      }, 100);
     } catch (error) {
       console.error("Error updating weekly leaderboard:", error);
       toast.error("Failed to update weekly leaderboard");
@@ -272,16 +376,16 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
               <SelectValue placeholder="Select week" />
             </SelectTrigger>
             <SelectContent>
-              {availableWeeks.map((week, index) => (
+              {[...availableWeeks].reverse().map((week, index) => (
                 <SelectItem key={index} value={index.toString()}>
-                  Week of {format(week.start, "MMM d")} - {format(week.end, "MMM d, yyyy")}
+                  {format(week.start, "MMM d")} - {format(week.end, "MMM d, yyyy")} (Week {availableWeeks.length - index})
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {weekRange && (
             <div className="text-sm text-gray-500">
-              Showing leaderboard for week of {format(weekRange.start, "MMM d")} - {format(weekRange.end, "MMM d, yyyy")}
+              Showing leaderboard for week of {format(weekRange.start, "MMM d")} - {format(weekRange.end, "MMM d, yyyy")} (Monday - Sunday)
             </div>
           )}
         </div>
@@ -345,60 +449,73 @@ export default function WeeklyLeaderboard({ pageSize = 10 }: WeeklyLeaderboardPr
             </tr>
           </thead>
           <tbody>
-            {leaderboard.map((entry) => (
-              <tr 
-                key={entry.userId}
-                className={`hover:bg-gray-50 ${
-                  currentUser?.uid === entry.userId ? 'bg-blue-50' : ''
-                }`}
-              >
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {entry.position <= 3 ? (
-                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                      entry.position === 1 ? 'bg-yellow-100 text-yellow-800' :
-                      entry.position === 2 ? 'bg-gray-100 text-gray-800' :
-                      'bg-orange-100 text-orange-800'
-                    }`}>
-                      {entry.position}
-                    </span>
-                  ) : (
-                    entry.position
-                  )}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={entry.userAvatar}
-                        alt={entry.userName}
-                        referrerPolicy="no-referrer"
-                      />
-                      <AvatarFallback>
-                        {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="ml-3 flex items-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {entry.userName}
+            {leaderboard.map((entry) => {
+              // Check if the selected week is in the past (completely over)
+              const isWeekCompletelyOver = weekRange && new Date() > weekRange.end;
+              
+              return (
+                <tr 
+                  key={entry.userId}
+                  className={`hover:bg-gray-50 ${
+                    currentUser?.uid === entry.userId ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {entry.position <= 3 ? (
+                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                        entry.position === 1 ? 'bg-yellow-100 text-yellow-800' :
+                        entry.position === 2 ? 'bg-gray-100 text-gray-800' :
+                        'bg-orange-100 text-orange-800'
+                      }`}>
+                        {entry.position}
+                      </span>
+                    ) : (
+                      entry.position
+                    )}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={entry.userAvatar}
+                          alt={entry.userName}
+                          referrerPolicy="no-referrer"
+                        />
+                        <AvatarFallback>
+                          {entry.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="ml-3 flex items-center">
+                        {entry.position === 1 && isWeekCompletelyOver && (
+                          <Trophy className={`mr-2 h-5 w-5 ${trophyAnimationClass}`} />
+                        )}
+                        <div className="text-sm font-medium text-gray-900">
+                          {entry.userName}
+                        </div>
+                        {currentUser?.uid === entry.userId && (
+                          <Badge variant="outline" className="ml-2">
+                            You
+                          </Badge>
+                        )}
+                        {entry.position === 1 && isWeekCompletelyOver && (
+                          <Badge variant="outline" className="ml-2 bg-gradient-to-r from-yellow-200 to-yellow-400 border-yellow-300 text-yellow-800">
+                            Winner
+                          </Badge>
+                        )}
                       </div>
-                      {currentUser?.uid === entry.userId && (
-                        <Badge variant="outline" className="ml-2">
-                          You
-                        </Badge>
-                      )}
                     </div>
-                  </div>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-right font-semibold">
-                  {entry.weeklyPoints}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-right hidden md:table-cell">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAccuracyColor(entry.accuracy)}`}>
-                    {entry.accuracy}%
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-right font-semibold">
+                    {entry.weeklyPoints}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-right hidden md:table-cell">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAccuracyColor(entry.accuracy)}`}>
+                      {entry.accuracy}%
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

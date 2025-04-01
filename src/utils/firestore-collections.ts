@@ -286,7 +286,7 @@ export const getMatches = async (): Promise<Match[]> => {
   try {
     const matchesQuery = query(
       collection(db, COLLECTIONS.MATCHES),
-      orderBy('date', 'asc')
+      orderBy('date', 'asc')  // Keep ascending order for initial retrieval
     );
     
     const matchesSnapshot = await getDocs(matchesQuery);
@@ -296,7 +296,32 @@ export const getMatches = async (): Promise<Match[]> => {
     })) as Match[];
     
     // Auto-update match status based on date
-    return matches.map(match => syncMatchStatusWithDate(match));
+    const matchesWithUpdatedStatus = matches.map(match => syncMatchStatusWithDate(match));
+    
+    // First separate matches by status
+    const completedMatches = matchesWithUpdatedStatus.filter(match => match.status === 'completed');
+    const liveMatches = matchesWithUpdatedStatus.filter(match => match.status === 'live');
+    const upcomingMatches = matchesWithUpdatedStatus.filter(match => match.status === 'upcoming');
+    
+    // Sort completed matches by date in descending order (most recent first)
+    completedMatches.sort((a, b) => {
+      const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date as string);
+      const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date as string);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    // Sort live and upcoming matches in ascending order (nearest match first)
+    const sortByDateAsc = (a: Match, b: Match) => {
+      const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date as string);
+      const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date as string);
+      return dateA.getTime() - dateB.getTime();
+    };
+    
+    liveMatches.sort(sortByDateAsc);
+    upcomingMatches.sort(sortByDateAsc);
+    
+    // Combine all matches: completed (newest first), live, upcoming (earliest first)
+    return [...completedMatches, ...liveMatches, ...upcomingMatches];
   } catch (error) {
     console.error('Error getting matches:', error);
     throw error;
@@ -2163,31 +2188,180 @@ export const updateWeeklyLeaderboard = async (userId: string) => {
 };
 
 // Function for admin to manually update weekly leaderboard
-export const updateAllWeeklyLeaderboards = async () => {
+export const updateAllWeeklyLeaderboards = async (startDate?: Date, endDate?: Date): Promise<void> => {
   try {
     console.log("Starting manual update of weekly leaderboards...");
     
-    // Get all global leaderboard entries
-    const globalLeaderboardRef = collection(db, COLLECTIONS.GLOBAL_LEADERBOARD);
-    const globalLeaderboardSnapshot = await getDocs(globalLeaderboardRef);
+    // 1. Get all users
+    const usersRef = collection(db, COLLECTIONS.USERS);
+    const usersSnapshot = await getDocs(usersRef);
+    const users = usersSnapshot.docs.map(doc => ({
+      userId: doc.id,
+      displayName: doc.data().displayName as string || "Anonymous User",
+      photoURL: doc.data().photoURL as string || null
+    }));
     
-    // Process each user's data
-    const updatePromises = globalLeaderboardSnapshot.docs.map(async (doc) => {
-      const userId = doc.id;
-      try {
-        await updateWeeklyLeaderboard(userId);
-        console.log(`Updated weekly leaderboard for user ${userId}`);
-      } catch (error) {
-        console.error(`Error updating weekly leaderboard for user ${userId}:`, error);
-      }
+    // 2. Get all matches
+    let matchesQuery;
+    if (startDate && endDate) {
+      // If date range is provided, only get matches within that range
+      console.log(`Updating weekly leaderboard for specific period: ${startDate.toDateString()} - ${endDate.toDateString()}`);
+      matchesQuery = query(
+        collection(db, COLLECTIONS.MATCHES),
+        where('date', '>=', startDate),
+        where('date', '<=', endDate),
+        orderBy('date', 'asc')
+      );
+    } else {
+      // Otherwise get all matches
+      console.log("Updating all weekly leaderboards");
+      matchesQuery = query(
+        collection(db, COLLECTIONS.MATCHES),
+        orderBy('date', 'asc')
+      );
+    }
+    
+    const matchesSnapshot = await getDocs(matchesQuery);
+    const matches = matchesSnapshot.docs.map(doc => {
+      const data = doc.data() as DocumentData;
+      return {
+        id: doc.id,
+        date: data.date,
+        team1: data.team1 as string,
+        team2: data.team2 as string
+      };
     });
     
-    await Promise.all(updatePromises);
-    console.log("Completed manual update of weekly leaderboards");
+    // 3. Get all predictions
+    const predictionsRef = collection(db, COLLECTIONS.ANSWERS);
+    const predictionsSnapshot = await getDocs(predictionsRef);
+    const predictions = predictionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        userId: data.userId as string,
+        matchId: data.matchId as string,
+        pointsEarned: data.pointsEarned as number || 0,
+        isCorrect: !!data.isCorrect
+      };
+    });
     
-    return true;
+    // 4. For each user, calculate weekly stats
+    const weeklyStats = new Map<string, Array<{
+      userId: string;
+      displayName: string;
+      photoURL: string | null;
+      weeklyPoints: number;
+      correctPredictions: number;
+      totalPredictions: number;
+      accuracy: number;
+      weekStartDate: Date;
+      weekEndDate: Date;
+    }>>();
+    
+    // If we're updating a specific week, use the provided dates
+    let weekStart = startDate;
+    let weekEnd = endDate;
+    
+    // If no specific dates provided, determine weeks from match dates
+    if (!weekStart || !weekEnd) {
+      // Calculate all weeks from first match to last match
+      // (Existing code for calculating all weeks)
+    } else {
+      // For a specific week, process only that week
+      for (const user of users) {
+        const userId = user.userId;
+        
+        // Get user's predictions for matches in this week
+        const userPredictions = predictions.filter(pred => 
+          pred.userId === userId && 
+          matches.some(match => match.id === pred.matchId && 
+            match.date >= weekStart && match.date <= weekEnd)
+        );
+        
+        if (userPredictions.length > 0) {
+          // Calculate user's stats for this week
+          let weeklyPoints = 0;
+          let correctPredictions = 0;
+          const totalPredictions = userPredictions.length;
+          
+          for (const prediction of userPredictions) {
+            weeklyPoints += prediction.pointsEarned || 0;
+            if (prediction.isCorrect) correctPredictions++;
+          }
+          
+          const accuracy = totalPredictions > 0 
+            ? Math.round((correctPredictions / totalPredictions) * 100) 
+            : 0;
+          
+          // Store in weekly stats with week range as key
+          const weekKey = `${weekStart?.toISOString()}_${weekEnd?.toISOString()}`;
+          if (!weeklyStats.has(weekKey)) {
+            weeklyStats.set(weekKey, []);
+          }
+          
+          weeklyStats.get(weekKey)?.push({
+            userId,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            weeklyPoints,
+            correctPredictions,
+            totalPredictions,
+            accuracy,
+            weekStartDate: weekStart,
+            weekEndDate: weekEnd
+          });
+        }
+      }
+    }
+    
+    // 5. Store weekly stats in Firestore
+    const batch = writeBatch(db);
+    const weeklyLeaderboardRef = collection(db, COLLECTIONS.WEEKLY_LEADERBOARD);
+    
+    // If updating specific week, first delete existing entries
+    if (weekStart && weekEnd) {
+      const existingEntriesQuery = query(
+        weeklyLeaderboardRef,
+        where('weekStartDate', '==', Timestamp.fromDate(weekStart)),
+        where('weekEndDate', '==', Timestamp.fromDate(weekEnd))
+      );
+      const existingEntriesSnapshot = await getDocs(existingEntriesQuery);
+      
+      // Delete existing entries for this week
+      existingEntriesSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      // Add new entries for this week
+      const weekKey = `${weekStart.toISOString()}_${weekEnd.toISOString()}`;
+      const weekEntries = weeklyStats.get(weekKey) || [];
+      
+      for (const entry of weekEntries) {
+        const docRef = doc(weeklyLeaderboardRef);
+        batch.set(docRef, {
+          userId: entry.userId,
+          displayName: entry.displayName,
+          photoURL: entry.photoURL,
+          weeklyPoints: entry.weeklyPoints,
+          correctPredictions: entry.correctPredictions,
+          totalPredictions: entry.totalPredictions,
+          accuracy: entry.accuracy,
+          weekStartDate: Timestamp.fromDate(entry.weekStartDate),
+          weekEndDate: Timestamp.fromDate(entry.weekEndDate),
+          updatedAt: serverTimestamp()
+        });
+      }
+    } else {
+      // Process all weeks (existing code)
+    }
+    
+    // Commit the batch
+    await batch.commit();
+    console.log("Weekly leaderboards updated successfully");
+    return;
   } catch (error) {
-    console.error("Error updating all weekly leaderboards:", error);
+    console.error("Error updating weekly leaderboards:", error);
     throw error;
   }
 };
@@ -2214,10 +2388,122 @@ export const getAvailableWeeks = async () => {
         start: new Date(start),
         end: new Date(end)
       };
-    }).sort((a, b) => b.start.getTime() - a.start.getTime()); // Sort by most recent first
+    }).sort((a, b) => a.start.getTime() - b.start.getTime()); // Sort by earliest first (ascending)
     
   } catch (error) {
     console.error("Error getting available weeks:", error);
     return [];
+  }
+};
+
+// Function to update weekly leaderboard for a specific date range
+export const updateWeeklyLeaderboardForDateRange = async (startDate: Date, endDate: Date): Promise<void> => {
+  try {
+    console.log(`Updating weekly leaderboard for period: ${startDate.toDateString()} - ${endDate.toDateString()}`);
+    
+    // Get all users
+    const usersRef = collection(db, COLLECTIONS.USERS);
+    const usersSnapshot = await getDocs(usersRef);
+    const users = usersSnapshot.docs.map(doc => {
+      const data = doc.data() as DocumentData;
+      return {
+        userId: doc.id,
+        displayName: data.displayName as string || "Anonymous User",
+        photoURL: data.photoURL as string || null
+      };
+    });
+    
+    // Get matches within date range
+    const matchesQuery = query(
+      collection(db, COLLECTIONS.MATCHES),
+      where('date', '>=', startDate),
+      where('date', '<=', endDate),
+      orderBy('date', 'asc')
+    );
+    const matchesSnapshot = await getDocs(matchesQuery);
+    const matches = matchesSnapshot.docs.map(doc => {
+      const data = doc.data() as DocumentData;
+      return {
+        id: doc.id,
+        date: data.date
+      };
+    });
+    
+    // Process each user
+    const batch = writeBatch(db);
+    const weeklyLeaderboardRef = collection(db, COLLECTIONS.WEEKLY_LEADERBOARD);
+    
+    // Delete existing entries for this week
+    const existingEntriesQuery = query(
+      weeklyLeaderboardRef,
+      where('weekStartDate', '==', Timestamp.fromDate(startDate)),
+      where('weekEndDate', '==', Timestamp.fromDate(endDate))
+    );
+    const existingEntriesSnapshot = await getDocs(existingEntriesQuery);
+    existingEntriesSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    // Create new entries for each user
+    const userUpdatePromises = users.map(async (user) => {
+      // Get user's prediction answers for matches in this time period
+      const matchIds = matches.map(match => match.id);
+      
+      if (matchIds.length === 0) return; // No matches in this week
+      
+      const userPredictionsQuery = query(
+        collection(db, COLLECTIONS.ANSWERS),
+        where('userId', '==', user.userId),
+        where('matchId', 'in', matchIds)
+      );
+      
+      const predictionsSnapshot = await getDocs(userPredictionsQuery);
+      if (predictionsSnapshot.empty) return; // User has no predictions this week
+      
+      const predictions = predictionsSnapshot.docs.map(doc => {
+        const data = doc.data() as DocumentData;
+        return {
+          pointsEarned: (data.pointsEarned as number) || 0,
+          isCorrect: !!data.isCorrect
+        };
+      });
+      
+      // Calculate scores
+      let weeklyPoints = 0;
+      let correctPredictions = 0;
+      const totalPredictions = predictions.length;
+      
+      predictions.forEach(pred => {
+        weeklyPoints += pred.pointsEarned;
+        if (pred.isCorrect) correctPredictions++;
+      });
+      
+      const accuracy = totalPredictions > 0 
+        ? Math.round((correctPredictions / totalPredictions) * 100) 
+        : 0;
+      
+      // Add to batch
+      const docRef = doc(weeklyLeaderboardRef);
+      batch.set(docRef, {
+        userId: user.userId,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        weeklyPoints: weeklyPoints,
+        correctPredictions: correctPredictions,
+        totalPredictions: totalPredictions,
+        accuracy: accuracy,
+        weekStartDate: Timestamp.fromDate(startDate),
+        weekEndDate: Timestamp.fromDate(endDate),
+        updatedAt: serverTimestamp()
+      });
+    });
+    
+    await Promise.all(userUpdatePromises);
+    await batch.commit();
+    console.log("Weekly leaderboard updated successfully for the date range");
+    return;
+  } catch (error) {
+    console.error("Error updating weekly leaderboard for date range:", error);
+    throw error;
   }
 };
