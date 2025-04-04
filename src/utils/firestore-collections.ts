@@ -553,7 +553,7 @@ export const createPrediction = async (predictionData: Omit<PredictionGame, 'id'
     // Server-side validation to ensure match is within prediction window
     const isWithinWindow = await isMatchWithinPredictionWindow(predictionData.matchId);
     if (!isWithinWindow) {
-      throw new Error('Predictions are only allowed within 24 hours of the match start time');
+      throw new Error('Predictions are only allowed within 7 days of the match start time');
     }
     
     const predictionRef = doc(collection(db, 'predictionGames'));
