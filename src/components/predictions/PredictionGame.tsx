@@ -676,9 +676,7 @@ export default function PredictionGame({
     const userAnswer = userAnswers.find(a => a.questionId === question.id)?.answer || '';
 
     if (question.type === 'topBatsman' || question.type === 'topBowler') {
-      // Get filtered players based on question type
-      const filteredPlayers = question.type === 'topBatsman' ? getBatsmen() : getBowlers();
-      
+      // Use all players instead of filtered ones
       return (
         <Select 
           value={answers[question.id] || userAnswer} 
@@ -701,22 +699,19 @@ export default function PredictionGame({
               </div>
             </SelectItem>
             
-            {/* Team 1 Players */}
-            {filteredPlayers
-              .filter(p => p.teamId === match.team1Id)
-              .map(player => (
-                <SelectItem key={player.id} value={player.name} textValue={player.name}>
-                  <div className="flex items-center">
-                    <img 
-                      src={getTeamLogoUrl(team1?.name || match.team1Id)} 
-                      alt={team1?.name || match.team1Id}
-                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
-                    />
-                    {player.name}
-                  </div>
-                </SelectItem>
-              ))
-            }
+            {/* Team 1 Players - Show all players */}
+            {team1Players.map(player => (
+              <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                <div className="flex items-center">
+                  <img 
+                    src={getTeamLogoUrl(team1?.name || match.team1Id)} 
+                    alt={team1?.name || match.team1Id}
+                    className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                  />
+                  {player.name} ({player.role || 'Unknown role'})
+                </div>
+              </SelectItem>
+            ))}
             
             {/* Team 2 Players Header */}
             <SelectItem value="team2-header" disabled className="font-bold text-primary">
@@ -730,22 +725,19 @@ export default function PredictionGame({
               </div>
             </SelectItem>
             
-            {/* Team 2 Players */}
-            {filteredPlayers
-              .filter(p => p.teamId === match.team2Id)
-              .map(player => (
-                <SelectItem key={player.id} value={player.name} textValue={player.name}>
-                  <div className="flex items-center">
-                    <img 
-                      src={getTeamLogoUrl(team2?.name || match.team2Id)} 
-                      alt={team2?.name || match.team2Id}
-                      className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
-                    />
-                    {player.name}
-                  </div>
-                </SelectItem>
-              ))
-            }
+            {/* Team 2 Players - Show all players */}
+            {team2Players.map(player => (
+              <SelectItem key={player.id} value={player.name} textValue={player.name}>
+                <div className="flex items-center">
+                  <img 
+                    src={getTeamLogoUrl(team2?.name || match.team2Id)} 
+                    alt={team2?.name || match.team2Id}
+                    className="w-5 h-5 mr-2 flex-shrink-0 object-contain"
+                  />
+                  {player.name} ({player.role || 'Unknown role'})
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       );
