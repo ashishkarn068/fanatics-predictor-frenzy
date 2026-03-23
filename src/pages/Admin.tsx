@@ -7,14 +7,17 @@ import Layout from "@/components/Layout";
 import TeamUploader from "@/components/admin/TeamUploader";
 import TeamsList from "@/components/admin/TeamsList";
 import MatchUploader from "@/components/admin/MatchUploader";
+import MatchFetcher from "@/components/admin/MatchFetcher";
 import MatchResultUpdater from "@/components/admin/MatchResultUpdater";
 import MockDataUploader from "@/components/admin/MockDataUploader";
 import SetAdminUser from '@/components/admin/SetAdminUser';
 import UserManagement from '@/components/admin/UserManagement';
 import LoggingControl from '@/components/admin/LoggingControl';
 import GlobalLeaderboardReset from '@/components/admin/GlobalLeaderboardReset';
+import SeasonReset from '@/components/admin/SeasonReset';
 import { PredictionControls } from '@/components/admin/PredictionControls';
 import QuestionManagement from '@/components/admin/QuestionManagement';
+import AutoDataFetch from '@/components/admin/AutoDataFetch';
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { isUserAdmin, setUserAsAdmin } from "@/utils/admin-auth";
@@ -137,6 +140,7 @@ const AdminPage = () => {
                 <TabsTrigger value="teams">Teams</TabsTrigger>
                 <TabsTrigger value="matches">Matches</TabsTrigger>
                 <TabsTrigger value="predictions">Predictions</TabsTrigger>
+                <TabsTrigger value="auto-fetch">Auto Fetch</TabsTrigger>
                 <TabsTrigger value="users">Users</TabsTrigger>
                 <TabsTrigger value="system">System</TabsTrigger>
               </TabsList>
@@ -152,6 +156,9 @@ const AdminPage = () => {
               <TabsContent value="matches" className="space-y-6">
                 <h2 className="text-xl font-semibold mb-4">Match Management</h2>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <MatchFetcher />
+                  </div>
                   <div className="md:col-span-2">
                     <MockDataUploader />
                   </div>
@@ -172,6 +179,11 @@ const AdminPage = () => {
                 </div>
               </TabsContent>
               
+              <TabsContent value="auto-fetch">
+                <h2 className="text-xl font-semibold mb-4">Automated Data Fetching</h2>
+                <AutoDataFetch />
+              </TabsContent>
+              
               <TabsContent value="users">
                 <h2 className="text-xl font-semibold mb-4">User Management</h2>
                 <UserManagement />
@@ -179,11 +191,10 @@ const AdminPage = () => {
 
               <TabsContent value="system">
                 <h2 className="text-xl font-semibold mb-4">System Settings</h2>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div>
+                <div className="grid grid-cols-1 gap-6">
+                  <SeasonReset />
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <LoggingControl />
-                  </div>
-                  <div>
                     <GlobalLeaderboardReset />
                   </div>
                 </div>

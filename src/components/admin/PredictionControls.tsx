@@ -91,7 +91,7 @@ export function PredictionControls() {
     }
   };
 
-  const isWithin24Hours = (dateString: string | Timestamp): boolean => {
+  const isWithin7Days = (dateString: string | Timestamp): boolean => {
     let matchDate: Date;
     
     if (typeof dateString === 'string') {
@@ -102,9 +102,9 @@ export function PredictionControls() {
     
     const now = new Date();
     const timeDifference = matchDate.getTime() - now.getTime();
-    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    const daysDifference = timeDifference / (1000 * 60 * 60 * 24);
     
-    return hoursDifference > 0 && hoursDifference <= 24;
+    return daysDifference > 0 && daysDifference <= 7;
   };
 
   const togglePredictionAccess = async (matchId: string, currentValue: boolean) => {
@@ -179,7 +179,7 @@ export function PredictionControls() {
       <CardHeader>
         <CardTitle>Prediction Management</CardTitle>
         <CardDescription>
-          Control which matches are open for predictions. By default, predictions are only allowed within 24 hours of a match.
+          Control which matches are open for predictions. By default, predictions are only allowed within 7 days of a match.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -202,8 +202,8 @@ export function PredictionControls() {
                 const matchDate = typeof match.date === 'string' 
                   ? new Date(match.date) 
                   : match.date.toDate();
-                const within24Hours = isWithin24Hours(match.date);
-                const isEnabled = match.isPredictionEnabledByAdmin === true || within24Hours;
+                const within7Days = isWithin7Days(match.date);
+                const isEnabled = match.isPredictionEnabledByAdmin === true || within7Days;
                 
                 return (
                   <TableRow key={match.id}>
@@ -217,9 +217,9 @@ export function PredictionControls() {
                       }`}>
                         {isEnabled ? 'Predictions Open' : 'Predictions Closed'}
                       </span>
-                      {within24Hours && (
+                      {within7Days && (
                         <span className="ml-2 text-xs text-blue-600">
-                          (Within 24h Window)
+                          (Within 7-day Window)
                         </span>
                       )}
                     </TableCell>
@@ -250,8 +250,8 @@ export function PredictionControls() {
           <Info className="h-5 w-5 text-blue-500 mt-0.5" />
           <div className="text-sm text-blue-700">
             <p><strong>How this works:</strong></p>
-            <p>• By default, predictions are only allowed within 24 hours of match start.</p>
-            <p>• Toggle the switch to enable predictions for a match outside the 24-hour window.</p>
+            <p>• By default, predictions are only allowed within 7 days of match start.</p>
+            <p>• Toggle the switch to enable predictions for a match outside the 7-day window.</p>
             <p>• This override persists until you disable it or the match starts.</p>
           </div>
         </div>

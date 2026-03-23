@@ -23,7 +23,7 @@ export default function Footer() {
               IPL Predictor Mania
             </h3>
             <p className="text-sm text-white/80 mt-1">
-              Test your cricket prediction skills during IPL 2025.
+              Test your cricket prediction skills during IPL 2026.
             </p>
           </div>
 

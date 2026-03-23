@@ -40,9 +40,9 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
   const team1Players = players.filter(p => p.teamId === match.team1Id);
   const team2Players = players.filter(p => p.teamId === match.team2Id);
 
-  // Filter players by role
-  const batsmen = players.filter(p => p.role === 'Batsman' || p.role === 'All-rounder' || p.role === 'Wicket-keeper');
-  const bowlers = players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder');
+  // Remove role-based filtering
+  // const batsmen = players.filter(p => p.role === 'Batsman' || p.role === 'All-rounder' || p.role === 'Wicket-keeper');
+  // const bowlers = players.filter(p => p.role === 'Bowler' || p.role === 'All-rounder');
 
   useEffect(() => {
     // Set up auth state listener
@@ -305,31 +305,25 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
                     <SelectItem value="any-team1">Any {team1} Player</SelectItem>
                     <SelectItem value="any-team2">Any {team2} Player</SelectItem>
                     
-                    {/* Team 1 Batsmen */}
-                    <SelectItem value="team1-batsmen-header" disabled className="font-bold text-primary">
-                      {team1} Batsmen
+                    {/* Team 1 Players */}
+                    <SelectItem value="team1-header" disabled className="font-bold text-primary">
+                      {team1} Players
                     </SelectItem>
-                    {team1Players
-                      .filter(p => p.role === 'Batsman' || p.role === 'All-rounder' || p.role === 'Wicket-keeper')
-                      .map(player => (
-                        <SelectItem key={player.id} value={player.id}>
-                          {player.name}
-                        </SelectItem>
-                      ))
-                    }
+                    {team1Players.map(player => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name} ({player.role || 'Unknown role'})
+                      </SelectItem>
+                    ))}
                     
-                    {/* Team 2 Batsmen */}
-                    <SelectItem value="team2-batsmen-header" disabled className="font-bold text-primary">
-                      {team2} Batsmen
+                    {/* Team 2 Players */}
+                    <SelectItem value="team2-header" disabled className="font-bold text-primary">
+                      {team2} Players
                     </SelectItem>
-                    {team2Players
-                      .filter(p => p.role === 'Batsman' || p.role === 'All-rounder' || p.role === 'Wicket-keeper')
-                      .map(player => (
-                        <SelectItem key={player.id} value={player.id}>
-                          {player.name}
-                        </SelectItem>
-                      ))
-                    }
+                    {team2Players.map(player => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name} ({player.role || 'Unknown role'})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -358,31 +352,25 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
                     <SelectItem value="any-team1">Any {team1} Player</SelectItem>
                     <SelectItem value="any-team2">Any {team2} Player</SelectItem>
                     
-                    {/* Team 1 Bowlers */}
-                    <SelectItem value="team1-bowlers-header" disabled className="font-bold text-primary">
-                      {team1} Bowlers
+                    {/* Team 1 Players */}
+                    <SelectItem value="team1-header" disabled className="font-bold text-primary">
+                      {team1} Players
                     </SelectItem>
-                    {team1Players
-                      .filter(p => p.role === 'Bowler' || p.role === 'All-rounder')
-                      .map(player => (
-                        <SelectItem key={player.id} value={player.id}>
-                          {player.name}
-                        </SelectItem>
-                      ))
-                    }
+                    {team1Players.map(player => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name} ({player.role || 'Unknown role'})
+                      </SelectItem>
+                    ))}
                     
-                    {/* Team 2 Bowlers */}
-                    <SelectItem value="team2-bowlers-header" disabled className="font-bold text-primary">
-                      {team2} Bowlers
+                    {/* Team 2 Players */}
+                    <SelectItem value="team2-header" disabled className="font-bold text-primary">
+                      {team2} Players
                     </SelectItem>
-                    {team2Players
-                      .filter(p => p.role === 'Bowler' || p.role === 'All-rounder')
-                      .map(player => (
-                        <SelectItem key={player.id} value={player.id}>
-                          {player.name}
-                        </SelectItem>
-                      ))
-                    }
+                    {team2Players.map(player => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name} ({player.role || 'Unknown role'})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -423,14 +411,14 @@ export default function PredictionPolls({ match, players, loading = false }: Pre
                 ? `Any ${team1} Player` 
                 : predictions.topBatsmanId === "any-team2" 
                   ? `Any ${team2} Player` 
-                  : batsmen.find(p => p.id === predictions.topBatsmanId)?.name || "Not selected"
+                  : players.find(p => p.id === predictions.topBatsmanId)?.name || "Not selected"
             }</li>
             <li>Top Bowler: {
               predictions.topBowlerId === "any-team1" 
                 ? `Any ${team1} Player` 
                 : predictions.topBowlerId === "any-team2" 
                   ? `Any ${team2} Player` 
-                  : bowlers.find(p => p.id === predictions.topBowlerId)?.name || "Not selected"
+                  : players.find(p => p.id === predictions.topBowlerId)?.name || "Not selected"
             }</li>
           </ul>
         </div>

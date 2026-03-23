@@ -160,7 +160,7 @@ const Index = () => {
                 IPL Predictor Mania
               </h1>
               <p className="text-base md:text-lg mb-4">
-                Test your cricket prediction skills during IPL 2025
+                Test your cricket prediction skills during IPL 2026
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="bg-white text-ipl-blue hover:bg-white/90 w-full sm:w-auto">

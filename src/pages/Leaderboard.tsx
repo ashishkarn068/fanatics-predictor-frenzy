@@ -19,7 +19,7 @@ import { getMatches, COLLECTIONS } from "@/utils/firestore-collections";
 import { Match as FirestoreMatch } from "@/utils/firestore-collections";
 import { Timestamp, collection, getDocs, query, where, orderBy, limit, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import WeeklyLeaderboard from "@/components/predictions/WeeklyLeaderboard";
+import WeeklyLeaderboard from "../components/predictions/WeeklyLeaderboard";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -62,13 +62,15 @@ const Leaderboard = () => {
       setIsLoadingMatches(true);
       try {
         const fetchedMatches = await getMatches();
+        // Only show completed matches (those with results to view)
+        const completedMatches = fetchedMatches.filter(m => m.status === 'completed');
         // Sort matches by date (most recent first)
-        fetchedMatches.sort((a, b) => {
+        completedMatches.sort((a, b) => {
           const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date as string);
           const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date as string);
           return dateB.getTime() - dateA.getTime();
         });
-        setMatches(fetchedMatches);
+        setMatches(completedMatches);
         if (fetchedMatches.length > 0) {
           setSelectedMatchId(fetchedMatches[0].id);
         }

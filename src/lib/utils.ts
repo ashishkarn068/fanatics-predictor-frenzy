@@ -114,7 +114,7 @@ export function getMatchStatus(match: Match): string {
     case 'live':
       return 'LIVE';
     case 'completed':
-      return match.result || 'Completed';
+      return typeof match.result === 'string' ? match.result : 'Completed';
     default:
       return '';
   }
@@ -188,16 +188,16 @@ export function isPredictionAllowed(match: any): boolean {
 
   const now = new Date();
   const timeDiff = matchDate.getTime() - now.getTime();
-  const hoursDifference = timeDiff / (1000 * 60 * 60);
+  const daysDifference = timeDiff / (1000 * 60 * 60 * 24);
 
   // Log useful information for debugging
   console.log(`Match ${match.id} prediction check:`, { 
     matchDate: matchDate.toISOString(),
     now: now.toISOString(),
     hasDatePassed: matchDate <= now,
-    hoursDifference,
+    daysDifference,
     adminEnabled: match.isPredictionEnabledByAdmin === true,
-    within24Hours: hoursDifference > 0 && hoursDifference <= 24
+    within7Days: daysDifference > 0 && daysDifference <= 7
   });
   
   // FIRST check: always return false if match date has passed
@@ -210,8 +210,8 @@ export function isPredictionAllowed(match: any): boolean {
     return true;
   }
   
-  // Otherwise, check if match is within 24 hours
-  return hoursDifference > 0 && hoursDifference <= 24;
+  // Otherwise, check if match is within 7 days
+  return daysDifference > 0 && daysDifference <= 7;
 }
 
 export function isPredictionDeadlinePassed(deadline: string): boolean {

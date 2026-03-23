@@ -917,61 +917,11 @@ export default function MatchResultUpdater() {
                         </SelectTrigger>
                         <SelectContent>
                           {(() => {
-                            // Debug log to see how many players we have
-                            console.log("Total players for batsman selection:", 
-                              getAllPlayers().length);
-                              
-                            // Get all batters based on role keywords
-                            const batters = getAllPlayers()
-                              .filter((player) => {
-                                if (!player || !player.role) {
-                                  return false;
-                                }
-                                
-                                const role = player.role.toLowerCase();
-                                
-                                // More comprehensive check for batters
-                                const isBatter = 
-                                  role.includes('bat') || 
-                                  role.includes('order') || 
-                                  role.includes('wicket') ||
-                                  role.includes('keeper') || 
-                                  role.includes('captain') ||
-                                  // Common designations in cricket
-                                  role === 'opener' ||
-                                  role.startsWith('top') ||
-                                  role.startsWith('middle') ||
-                                  // Check for specific words
-                                  role === 'batter' ||
-                                  role === 'batsman';
-                                
-                                // Debug which players are being filtered and why
-                                if (isBatter) {
-                                  console.log(`Included batsman: ${player.name} (${player.role})`);
-                                } else {
-                                  console.log(`Excluded from batsman: ${player.name} (${player.role})`);
-                                }
-                                
-                                return isBatter;
-                              });
-                              
-                            console.log(`Found ${batters.length} batters after filtering`);
+                            // Get all players without filtering by role
+                            const allPlayers = getAllPlayers();
                             
-                            // If no batters match our filter, just show all players as fallback
-                            const playersToShow = batters.length > 0 ? batters : getAllPlayers();
-                            
-                            // Add this check to log how many players have roles defined
-                            if (getAllPlayers().length > 0 && getAllPlayers().filter(p => p.role).length === 0) {
-                              console.log("No players with roles defined, showing all players");
-                              return getAllPlayers().map((player) => (
-                                <SelectItem key={player.name} value={player.name}>
-                                  {player.name} ({player.role || 'Unknown role'})
-                                </SelectItem>
-                              ));
-                            }
-                            
-                            return playersToShow.length > 0 ? (
-                              playersToShow.map((player) => (
+                            return allPlayers.length > 0 ? (
+                              allPlayers.map((player) => (
                                 <SelectItem key={player.name} value={player.name}>
                                   {player.name} ({player.role || 'Unknown role'})
                                 </SelectItem>
@@ -1000,58 +950,11 @@ export default function MatchResultUpdater() {
                         </SelectTrigger>
                         <SelectContent>
                           {(() => {
-                            // Debug log to see how many players we have
-                            console.log("Total players for bowler selection:", 
-                              getAllPlayers().length);
-                              
-                            // Get all bowlers based on role keywords
-                            const bowlers = getAllPlayers()
-                              .filter((player) => {
-                                if (!player || !player.role) {
-                                  return false;
-                                }
-                                
-                                const role = player.role.toLowerCase();
-                                
-                                // More comprehensive check for bowlers
-                                const isBowler = 
-                                  role.includes('bowl') || 
-                                  role.includes('all') ||
-                                  // Check exact role
-                                  role === 'bowler' ||
-                                  // Specific types of bowlers
-                                  role.includes('spinner') ||
-                                  role.includes('pacer') ||
-                                  role.includes('fast') ||
-                                  role.includes('medium');
-                                
-                                // Debug which players are being filtered and why
-                                if (isBowler) {
-                                  console.log(`Included bowler: ${player.name} (${player.role})`);
-                                } else {
-                                  console.log(`Excluded from bowler: ${player.name} (${player.role})`);
-                                }
-                                
-                                return isBowler;
-                              });
-                              
-                            console.log(`Found ${bowlers.length} bowlers after filtering`);
+                            // Get all players without filtering by role
+                            const allPlayers = getAllPlayers();
                             
-                            // If no bowlers match our filter, just show all players as fallback
-                            const playersToShow = bowlers.length > 0 ? bowlers : getAllPlayers();
-                            
-                            // Add this check to log how many players have roles defined
-                            if (getAllPlayers().length > 0 && getAllPlayers().filter(p => p.role).length === 0) {
-                              console.log("No players with roles defined, showing all players");
-                              return getAllPlayers().map((player) => (
-                                <SelectItem key={player.name} value={player.name}>
-                                  {player.name} ({player.role || 'Unknown role'})
-                                </SelectItem>
-                              ));
-                            }
-                            
-                            return playersToShow.length > 0 ? (
-                              playersToShow.map((player) => (
+                            return allPlayers.length > 0 ? (
+                              allPlayers.map((player) => (
                                 <SelectItem key={player.name} value={player.name}>
                                   {player.name} ({player.role || 'Unknown role'})
                                 </SelectItem>
