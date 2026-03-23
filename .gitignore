@@ -41,3 +41,6 @@ out/
 
 # Zip files
 *.zip
+
+# Temp / exploration scripts
+temp/

@@ -16,8 +16,8 @@ export interface FirebaseConfig {
  */
 export async function getFirebaseConfig(): Promise<FirebaseConfig> {
   try {
-    // In development, use localhost, in production use relative URL
-    const baseUrl = import.meta.env.DEV ? 'http://localhost:8000' : '';
+    // Use relative URL — Vite proxy handles forwarding to backend in dev
+    const baseUrl = '';
     console.log('Fetching Firebase config from:', `${baseUrl}/api/config/firebase`);
     
     const response = await fetch(`${baseUrl}/api/config/firebase`);

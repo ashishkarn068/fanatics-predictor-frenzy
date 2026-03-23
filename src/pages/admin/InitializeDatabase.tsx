@@ -131,7 +131,7 @@ const InitializeDatabase = () => {
           <CardHeader>
             <CardTitle>Firestore Database Management</CardTitle>
             <CardDescription>
-              Initialize your Firestore database with sample data and security rules for the IPL 2025 prediction app.
+              Initialize your Firestore database with sample data and security rules for the IPL 2026 prediction app.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -157,7 +157,7 @@ const InitializeDatabase = () => {
                   <ul className="list-disc pl-5 text-sm space-y-1">
                     <li>Teams - All 10 IPL teams with their branding</li>
                     <li>Players - Key players for each team</li>
-                    <li>Matches - Schedule of upcoming IPL 2025 matches</li>
+                    <li>Matches - Schedule of upcoming IPL 2026 matches</li>
                     <li>Questions - Standard prediction questions</li>
                     <li>PredictionGames - Match-specific prediction games</li>
                   </ul>

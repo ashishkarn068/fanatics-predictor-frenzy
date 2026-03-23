@@ -62,13 +62,15 @@ const Leaderboard = () => {
       setIsLoadingMatches(true);
       try {
         const fetchedMatches = await getMatches();
+        // Only show completed matches (those with results to view)
+        const completedMatches = fetchedMatches.filter(m => m.status === 'completed');
         // Sort matches by date (most recent first)
-        fetchedMatches.sort((a, b) => {
+        completedMatches.sort((a, b) => {
           const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date as string);
           const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date as string);
           return dateB.getTime() - dateA.getTime();
         });
-        setMatches(fetchedMatches);
+        setMatches(completedMatches);
         if (fetchedMatches.length > 0) {
           setSelectedMatchId(fetchedMatches[0].id);
         }
