@@ -125,21 +125,11 @@ app.get('/api/config/firebase', async (req, res) => {
     res.json(config);
   } catch (error) {
     console.error('Error fetching Firebase config:', error);
-    
-    // Fallback to hardcoded config if available (for development/testing only)
-    // In production, you should set environment variables or fix Key Vault access
-    const fallbackConfig = {
-      apiKey: "AIzaSyC8ee2OBNfvdvRnTnatdqXC6EN7yflqmbs",
-      authDomain: "fanatics-predictor.firebaseapp.com",
-      projectId: "fanatics-predictor",
-      storageBucket: "fanatics-predictor.firebasestorage.app",
-      messagingSenderId: "882421015273",
-      appId: "1:882421015273:web:ee00904e7a7bb0c0b50678",
-      measurementId: "G-EH6FM2JFG0"
-    };
-    
-    console.log('Using fallback Firebase config');
-    return res.json(fallbackConfig);
+    res.status(500).json({
+      error: 'Failed to fetch Firebase configuration',
+      details: error.message,
+      hint: 'Set FIREBASE_* environment variables or configure Azure Key Vault access'
+    });
   }
 });
 

@@ -16,16 +16,25 @@ dotenv.config();
 const keyVaultName = process.env.AZURE_KEY_VAULT_NAME || 'myFirebaseKeyVault';
 const vaultUrl = `https://${keyVaultName}.vault.azure.net`;
 
-// Firebase client configuration
+// Firebase client configuration — load from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyC8ee2OBNfvdvRnTnatdqXC6EN7yflqmbs",
-  authDomain: "fanatics-predictor.firebaseapp.com",
-  projectId: "fanatics-predictor",
-  storageBucket: "fanatics-predictor.firebasestorage.app",
-  messagingSenderId: "882421015273",
-  appId: "1:882421015273:web:ee00904e7a7bb0c0b50678",
-  measurementId: "G-EH6FM2JFG0"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
+
+// Validate that required fields are set
+const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+const missing = requiredFields.filter(f => !firebaseConfig[f]);
+if (missing.length > 0) {
+  console.error(`Missing env vars: ${missing.map(f => 'FIREBASE_' + f.replace(/([A-Z])/g, '_$1').toUpperCase()).join(', ')}`);
+  console.error('Set these in a .env file or export them before running this script.');
+  process.exit(1);
+}
 
 async function uploadFirebaseConfig() {
   try {
