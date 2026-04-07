@@ -1,0 +1,12 @@
+<step title="Incoming Request" date="2025-03-23T10:42:01.497" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-23_10-36-58Z" method="GET" type="request" pid="768,1,25" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="960e0d47-0fce-4bc0-93eb-d95370afb546" CLIENT-IP="132.196.50.112:33665" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-23_10-36-58Z" X-Client-IP="132.196.50.112" X-Client-Port="33665" >
+  <step title="Cleanup Xml Logs" date="2025-03-23T10:42:01.515" >
+    <step title="Cleanup Infos" date="2025-03-23T10:42:01.603" totalFiles="513" totalCleanup="353" /><!-- duration: 30ms -->
+  </step><!-- duration: 124ms -->
+  <step title="DeploymentService.GetResult" date="2025-03-23T10:42:01.673" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-23T10:42:01.683" >
+      <step title="DeploymentManager.GetResults" date="2025-03-23T10:42:01.688" /><!-- duration: 230ms -->
+      <step title="Deployment 7a5438a0-5120-4fdf-9d20-06e21204f8e9 is Building" date="2025-03-23T10:42:01.937" /><!-- duration: 3ms -->
+    </step><!-- duration: 262ms -->
+  </step><!-- duration: 295ms -->
+  <step title="Outgoing response" date="2025-03-23T10:42:02.009" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 21ms -->
+</step><!-- duration: 550ms -->

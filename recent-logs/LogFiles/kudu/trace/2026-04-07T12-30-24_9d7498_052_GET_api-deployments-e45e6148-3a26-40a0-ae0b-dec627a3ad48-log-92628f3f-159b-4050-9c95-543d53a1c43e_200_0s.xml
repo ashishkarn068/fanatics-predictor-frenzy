@@ -1,0 +1,9 @@
+<step title="Incoming Request" date="2026-04-07T12:30:24.102" instance="9d7498" url="/api/deployments/e45e6148-3a26-40a0-ae0b-dec627a3ad48/log/92628f3f-159b-4050-9c95-543d53a1c43e" method="GET" type="request" pid="768,1,22" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa_v3.0.8" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=9d7498a4a318b27525b27c833210fefa9d75a5c27a3169bb9f2b892b244d413b; ARRAffinitySameSite=9d7498a4a318b27525b27c833210fefa9d75a5c27a3169bb9f2b892b244d413b" Content-Length="0" X-ARR-LOG-ID="2b846729-234b-4506-b5c6-9db10e060965" CLIENT-IP="135.119.236.50:9234" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/e45e6148-3a26-40a0-ae0b-dec627a3ad48/log/92628f3f-159b-4050-9c95-543d53a1c43e" X-Client-IP="135.119.236.50" X-Client-Port="9234" >
+  <step title="Cleanup Xml Logs" date="2026-04-07T12:30:24.104" >
+    <step title="Cleanup Infos" date="2026-04-07T12:30:24.282" totalFiles="4721" totalCleanup="4561" /><!-- duration: 71ms -->
+  </step><!-- duration: 269ms -->
+  <step title="DeploymentService.GetLogEntryDetails" date="2026-04-07T12:30:24.454" >
+    <step title="DeploymentManager.GetLogEntryDetails(id:e45e6148-3a26-40a0-ae0b-dec627a3ad48, entryId:92628f3f-159b-4050-9c95-543d53a1c43e" date="2026-04-07T12:30:24.465" /><!-- duration: 10ms -->
+  </step><!-- duration: 29ms -->
+  <step title="Outgoing response" date="2026-04-07T12:30:24.496" type="response" statusCode="200" statusText="OK" /><!-- duration: 9ms -->
+</step><!-- duration: 411ms -->

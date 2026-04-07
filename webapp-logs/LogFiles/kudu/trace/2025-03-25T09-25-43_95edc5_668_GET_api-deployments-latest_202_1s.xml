@@ -1,0 +1,13 @@
+<step title="Incoming Request" date="2025-03-25T09:25:43.716" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_09-09-32Z" method="GET" type="request" pid="768,1,28" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="c35f3c75-3183-4b1d-b75a-a70e58a483e2" CLIENT-IP="20.246.78.208:11266" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_09-09-32Z" X-Client-IP="20.246.78.208" X-Client-Port="11266" >
+  <step title="Cleanup Xml Logs" date="2025-03-25T09:25:43.737" >
+    <step title="Cleanup Infos" date="2025-03-25T09:25:43.885" totalFiles="2446" totalCleanup="2286" /><!-- duration: 13ms -->
+  </step><!-- duration: 165ms -->
+  <step title="DeploymentService.GetResult" date="2025-03-25T09:25:43.910" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-25T09:25:43.915" >
+      <step title="DeploymentManager.GetResults" date="2025-03-25T09:25:43.918" /><!-- duration: 573ms -->
+      <step title="Deployment 24399977-e680-46e7-aa4c-81becfa2650d is Building" date="2025-03-25T09:25:44.521" /><!-- duration: 5ms -->
+    </step><!-- duration: 613ms -->
+    <step title="Redirecting to latest deployment: https://iplpredictionmania.scm.azurewebsites.net/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_09-09-32Z" date="2025-03-25T09:25:44.530" /><!-- duration: 4ms -->
+  </step><!-- duration: 647ms -->
+  <step title="Outgoing response" date="2025-03-25T09:25:44.564" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 9ms -->
+</step><!-- duration: 879ms -->

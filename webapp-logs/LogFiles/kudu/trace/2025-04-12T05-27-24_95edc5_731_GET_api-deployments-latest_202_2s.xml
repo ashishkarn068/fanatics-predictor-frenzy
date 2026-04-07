@@ -1,0 +1,12 @@
+<step title="Incoming Request" date="2025-04-12T05:27:24.439" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-04-12_05-22-54Z" method="GET" type="request" pid="770,1,102" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="17f07102-a727-431b-9d4b-1e083bf2c329" CLIENT-IP="52.225.28.65:12674" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-04-12_05-22-54Z" X-Client-IP="52.225.28.65" X-Client-Port="12674" >
+  <step title="Cleanup Xml Logs" date="2025-04-12T05:27:24.459" >
+    <step title="Cleanup Infos" date="2025-04-12T05:27:24.946" totalFiles="4068" totalCleanup="3908" /><!-- duration: 83ms -->
+  </step><!-- duration: 588ms -->
+  <step title="DeploymentService.GetResult" date="2025-04-12T05:27:25.098" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-04-12T05:27:25.116" >
+      <step title="DeploymentManager.GetResults" date="2025-04-12T05:27:25.147" /><!-- duration: 1080ms -->
+      <step title="Deployment d105bb45-28f6-4573-9a60-677b12ce599c is Building" date="2025-04-12T05:27:26.259" /><!-- duration: 38ms -->
+    </step><!-- duration: 1221ms -->
+  </step><!-- duration: 1252ms -->
+  <step title="Outgoing response" date="2025-04-12T05:27:26.360" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 11ms -->
+</step><!-- duration: 1948ms -->

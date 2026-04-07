@@ -1,0 +1,13 @@
+<step title="Incoming Request" date="2025-03-25T13:48:49.490" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_13-48-40Z" method="GET" type="request" pid="768,1,19" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="2e04d235-c7b4-48ee-80cd-607cf563b696" CLIENT-IP="20.172.29.24:31810" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_13-48-40Z" X-Client-IP="20.172.29.24" X-Client-Port="31810" >
+  <step title="Cleanup Xml Logs" date="2025-03-25T13:48:49.493" >
+    <step title="Cleanup Infos" date="2025-03-25T13:48:49.622" totalFiles="2822" totalCleanup="2662" /><!-- duration: 20ms -->
+  </step><!-- duration: 170ms -->
+  <step title="DeploymentService.GetResult" date="2025-03-25T13:48:49.691" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-25T13:48:49.701" >
+      <step title="DeploymentManager.GetResults" date="2025-03-25T13:48:49.710" /><!-- duration: 561ms -->
+      <step title="Deployment temp-b4d6b4fc is Pending" date="2025-03-25T13:48:50.274" /><!-- duration: 9ms -->
+    </step><!-- duration: 590ms -->
+    <step title="Redirecting to latest deployment: https://iplpredictionmania.scm.azurewebsites.net/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-25_13-48-40Z" date="2025-03-25T13:48:50.299" /><!-- duration: 3ms -->
+  </step><!-- duration: 619ms -->
+  <step title="Outgoing response" date="2025-03-25T13:48:50.321" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 9ms -->
+</step><!-- duration: 843ms -->

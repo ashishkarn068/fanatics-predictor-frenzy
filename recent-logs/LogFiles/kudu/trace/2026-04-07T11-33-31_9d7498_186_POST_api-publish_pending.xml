@@ -1,0 +1,17 @@
+<step title="Incoming Request" date="2026-04-07T11:33:31.075" instance="9d7498" url="/api/publish?type=zip&amp;async=True" method="POST" type="request" pid="767,1,36" Accept="*/*" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="AZURECLI/2.63.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." Cache-Control="no-cache" Content-Type="application/octet-stream" Content-Length="53954560" x-ms-client-request-id="5679909b-3275-11f1-8675-88d82ed310fc" x-ms-artifact-checksum="55ac8f384fd5fead258426dc6210b853b7c5368ded2285197d3d367d62cd9fc0" X-ARR-LOG-ID="5679909b-3275-11f1-8675-88d82ed310fc" CLIENT-IP="49.207.210.142:1554" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?type=zip&amp;async=True" X-Client-IP="49.207.210.142" X-Client-Port="1554" >
+  <step title="Cleanup Xml Logs" date="2026-04-07T11:33:31.077" >
+    <step title="Cleanup Infos" date="2026-04-07T11:33:31.380" totalFiles="4665" totalCleanup="4505" /><!-- duration: 50ms -->
+  </step><!-- duration: 372ms -->
+  <step title="OneDeploy" date="2026-04-07T11:33:31.551" >
+    <step title="Starting PushDeployAsync" date="2026-04-07T11:33:31.570" /><!-- duration: 2ms -->
+    <step title="Removing sub node_modules symlink" date="2026-04-07T11:33:31.586" >
+      <step title="Writing artifact to /tmp/zipdeploy/3999dce4-7130-43d8-abf6-06abb91f136d.zip" date="2026-04-07T11:33:31.699" >
+        <step title="Writing multipart request body to /tmp/zipdeploy/3999dce4-7130-43d8-abf6-06abb91f136d.zip" date="2026-04-07T11:33:31.701" /><!-- duration: 9ms -->
+      </step><!-- duration: 1976ms -->
+      <step title="Start deployment in the background" date="2026-04-07T11:33:33.685" >
+        <step title="Acquiring Deployment Lock" date="2026-04-07T11:33:33.743" /><!-- duration: 31ms -->
+        <step title="Acquired Deployment Lock" date="2026-04-07T11:33:33.824" /><!-- duration: 2ms -->
+      </step><!-- duration: 201ms -->
+    </step><!-- duration: 2314ms -->
+    <step title="Outgoing response" date="2026-04-07T11:33:33.925" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 2ms -->
+  </step><!-- duration: 2377ms -->

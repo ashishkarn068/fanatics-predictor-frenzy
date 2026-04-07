@@ -1,0 +1,16 @@
+<step title="Incoming Request" date="2025-03-24T10:49:51.367" instance="95edc5" url="/api/publish?async=true&amp;deployer=GITHUB_ONE_DEPLOY&amp;type=zip&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%22a1bfa2d1ac5eac76b27c27632e91955d289215bc%22%2C%22repoName%22%3A%22ashishkarn068%2Ffanatics-predictor-frenzy%22%2C%22actor%22%3A%22ashishkarn068%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22Calculation%20logic%20update%22%7D" method="POST" type="request" pid="769,1,75" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/octet-stream" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Transfer-Encoding="chunked" X-ARR-LOG-ID="c7110350-81c7-4417-ae94-8485e0965589" CLIENT-IP="172.214.175.248:50176" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?async=true&amp;deployer=GITHUB_ONE_DEPLOY&amp;type=zip&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%22a1bfa2d1ac5eac76b27c27632e91955d289215bc%22%2C%22repoName%22%3A%22ashishkarn068%2Ffanatics-predictor-frenzy%22%2C%22actor%22%3A%22ashishkarn068%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22Calculation%20logic%20update%22%7D" X-Client-IP="172.214.175.248" X-Client-Port="50176" >
+  <step title="Cleanup Xml Logs" date="2025-03-24T10:49:51.370" >
+    <step title="Cleanup Infos" date="2025-03-24T10:49:51.391" totalFiles="1011" totalCleanup="851" /><!-- duration: 4ms -->
+  </step><!-- duration: 27ms -->
+  <step title="OneDeploy" date="2025-03-24T10:49:51.419" >
+    <step title="Starting PushDeployAsync" date="2025-03-24T10:49:51.431" /><!-- duration: 5ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/6b06999e-59fb-433f-b202-1555d410e418.zip" date="2025-03-24T10:49:51.464" >
+      <step title="Writing zip file from request body to /tmp/zipdeploy/6b06999e-59fb-433f-b202-1555d410e418.zip" date="2025-03-24T10:49:51.467" /><!-- duration: 3ms -->
+    </step><!-- duration: 22917ms -->
+    <step title="Start deployment in the background" date="2025-03-24T10:50:14.405" >
+      <step title="Acquiring Deployment Lock" date="2025-03-24T10:50:14.530" /><!-- duration: 3ms -->
+      <step title="Acquired Deployment Lock" date="2025-03-24T10:50:14.560" /><!-- duration: 3ms -->
+    </step><!-- duration: 234ms -->
+  </step><!-- duration: 23232ms -->
+  <step title="Outgoing response" date="2025-03-24T10:50:14.656" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 3ms -->
+</step><!-- duration: 23294ms -->

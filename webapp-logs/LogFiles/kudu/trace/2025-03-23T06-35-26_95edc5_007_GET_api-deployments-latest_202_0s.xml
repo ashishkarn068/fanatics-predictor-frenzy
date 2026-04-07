@@ -1,0 +1,9 @@
+<step title="Incoming Request" date="2025-03-23T06:35:26.392" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-23_06-35-25Z" method="GET" type="request" pid="769,1,7" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="d973b08c-8205-4d64-a5cf-f316972c25bc" CLIENT-IP="20.246.78.99:53248" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-23_06-35-25Z" X-Client-IP="20.246.78.99" X-Client-Port="53248" >
+  <step title="DeploymentService.GetResult" date="2025-03-23T06:35:26.411" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-23T06:35:26.415" >
+      <step title="DeploymentManager.GetResults" date="2025-03-23T06:35:26.419" /><!-- duration: 103ms -->
+      <step title="Deployment temp-bffd3261 is Pending" date="2025-03-23T06:35:26.528" /><!-- duration: 3ms -->
+    </step><!-- duration: 119ms -->
+  </step><!-- duration: 126ms -->
+  <step title="Outgoing response" date="2025-03-23T06:35:26.591" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 3ms -->
+</step><!-- duration: 236ms -->

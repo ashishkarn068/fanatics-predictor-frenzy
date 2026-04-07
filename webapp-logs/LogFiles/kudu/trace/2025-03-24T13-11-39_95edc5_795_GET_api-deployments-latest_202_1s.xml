@@ -1,0 +1,12 @@
+<step title="Incoming Request" date="2025-03-24T13:11:39.916" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-24_12-46-23Z" method="GET" type="request" pid="769,1,24" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="dcb5cfaa-0ec7-46c2-afcd-5266cc66c3ca" CLIENT-IP="20.161.62.78:47296" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-03-24_12-46-23Z" X-Client-IP="20.161.62.78" X-Client-Port="47296" >
+  <step title="Cleanup Xml Logs" date="2025-03-24T13:11:39.919" >
+    <step title="Cleanup Infos" date="2025-03-24T13:11:39.993" totalFiles="1506" totalCleanup="1346" /><!-- duration: 8ms -->
+  </step><!-- duration: 87ms -->
+  <step title="DeploymentService.GetResult" date="2025-03-24T13:11:40.016" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-24T13:11:40.018" >
+      <step title="DeploymentManager.GetResults" date="2025-03-24T13:11:40.022" /><!-- duration: 515ms -->
+      <step title="Deployment ee71161f-71a7-4ea2-82dc-59e91d617df1 is Building" date="2025-03-24T13:11:40.539" /><!-- duration: 2ms -->
+    </step><!-- duration: 528ms -->
+  </step><!-- duration: 554ms -->
+  <step title="Outgoing response" date="2025-03-24T13:11:40.574" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 3ms -->
+</step><!-- duration: 664ms -->

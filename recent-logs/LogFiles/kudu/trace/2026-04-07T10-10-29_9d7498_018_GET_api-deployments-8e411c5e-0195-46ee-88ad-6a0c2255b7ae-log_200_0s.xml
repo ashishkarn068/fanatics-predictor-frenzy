@@ -1,0 +1,6 @@
+<step title="Incoming Request" date="2026-04-07T10:10:29.391" instance="9d7498" url="/api/deployments/8e411c5e-0195-46ee-88ad-6a0c2255b7ae/log" method="GET" type="request" pid="770,1,17" Accept="*/*" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="python/3.11.8 (Windows-10-10.0.26200-SP0) AZURECLI/2.63.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." x-ms-client-request-id="b924e2e4-da50-4a3b-9e75-8d3d80e12341" CommandName="rest" ParameterSetName="--method --url --resource" X-ARR-LOG-ID="b924e2e4-da50-4a3b-9e75-8d3d80e12341" CLIENT-IP="49.207.210.142:1969" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/8e411c5e-0195-46ee-88ad-6a0c2255b7ae/log" X-Client-IP="49.207.210.142" X-Client-Port="1969" >
+  <step title="DeploymentService.GetLogEntry" date="2026-04-07T10:10:29.404" >
+    <step title="DeploymentManager.GetLogEntries(id:8e411c5e-0195-46ee-88ad-6a0c2255b7ae)" date="2026-04-07T10:10:29.410" /><!-- duration: 31ms -->
+  </step><!-- duration: 39ms -->
+  <step title="Outgoing response" date="2026-04-07T10:10:29.470" type="response" statusCode="200" statusText="OK" /><!-- duration: 2ms -->
+</step><!-- duration: 82ms -->

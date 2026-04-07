@@ -1,0 +1,12 @@
+<step title="Incoming Request" date="2025-04-04T09:27:04.054" instance="95edc5" url="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-04-04_09-07-35Z" method="GET" type="request" pid="770,1,25" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;Secure;Domain=iplpredictionmania.scm.azurewebsites.net; ARRAffinitySameSite=95edc5ba5389bab4edd5ce3c7b12c4b1e08ebe352160722cfedd636a4d226100;Path=/;HttpOnly;SameSite=None;Secure;Domain=iplpredictionmania.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="504910e1-f082-4f6e-a149-5a41b237f9a5" CLIENT-IP="128.85.161.162:35712" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=OneDeploy&amp;time=2025-04-04_09-07-35Z" X-Client-IP="128.85.161.162" X-Client-Port="35712" >
+  <step title="Cleanup Xml Logs" date="2025-04-04T09:27:04.060" >
+    <step title="Cleanup Infos" date="2025-04-04T09:27:04.223" totalFiles="3827" totalCleanup="3667" /><!-- duration: 25ms -->
+  </step><!-- duration: 198ms -->
+  <step title="DeploymentService.GetResult" date="2025-04-04T09:27:04.282" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-04-04T09:27:04.285" >
+      <step title="DeploymentManager.GetResults" date="2025-04-04T09:27:04.291" /><!-- duration: 593ms -->
+      <step title="Deployment 886eff96-b2e0-4df1-bec0-79e638d40e93 is Building" date="2025-04-04T09:27:04.894" /><!-- duration: 3ms -->
+    </step><!-- duration: 615ms -->
+  </step><!-- duration: 622ms -->
+  <step title="Outgoing response" date="2025-04-04T09:27:04.908" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 2ms -->
+</step><!-- duration: 858ms -->

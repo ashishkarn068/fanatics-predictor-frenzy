@@ -1,0 +1,18 @@
+<step title="Incoming Request" date="2025-03-22T13:39:04.027" instance="95edc5" url="/api/zipdeploy?isAsync=true" method="POST" type="request" pid="768,1,19" Accept="*/*" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="AZURECLI/2.63.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." Cache-Control="no-cache" Content-Type="application/octet-stream" Content-Length="622734" x-ms-client-request-id="02f8442b-0723-11f0-9fbf-88d82ed310fc" x-ms-artifact-checksum="2348dea20acb22456efc056863b8ee92fed499ac2f7e3d4aa0e50f0f662bff03" X-ARR-LOG-ID="02f8442b-0723-11f0-9fbf-88d82ed310fc" CLIENT-IP="49.207.211.164:50199" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true" X-Client-IP="49.207.211.164" X-Client-Port="50199" >
+  <step title="Cleanup Xml Logs" date="2025-03-22T13:39:04.031" /><!-- duration: 8ms -->
+  <step title="ZipPushDeploy" date="2025-03-22T13:39:04.086" >
+    <step title="ZipDeploy. Extract zip." date="2025-03-22T13:39:04.100" /><!-- duration: 3ms -->
+    <step title="None repository commit" date="2025-03-22T13:39:04.114" >
+      <step title="Commit id: 02f8442b-0723-11f0-9fbf-88d82ed310fc" date="2025-03-22T13:39:04.117" Message="N/A" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 3ms -->
+    </step><!-- duration: 11ms -->
+    <step title="Starting PushDeployAsync" date="2025-03-22T13:39:04.169" /><!-- duration: 3ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/9fe6575e-22af-4a28-90b8-03bc86e513a0.zip" date="2025-03-22T13:39:04.217" >
+      <step title="Writing zip file from request body to /tmp/zipdeploy/9fe6575e-22af-4a28-90b8-03bc86e513a0.zip" date="2025-03-22T13:39:04.235" /><!-- duration: 4ms -->
+    </step><!-- duration: 181ms -->
+    <step title="Start deployment in the background" date="2025-03-22T13:39:04.420" >
+      <step title="Acquiring Deployment Lock" date="2025-03-22T13:39:04.456" /><!-- duration: 3ms -->
+      <step title="Acquired Deployment Lock" date="2025-03-22T13:39:04.483" /><!-- duration: 3ms -->
+    </step><!-- duration: 139ms -->
+  </step><!-- duration: 482ms -->
+  <step title="Outgoing response" date="2025-03-22T13:39:04.580" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 9ms -->
+</step><!-- duration: 564ms -->

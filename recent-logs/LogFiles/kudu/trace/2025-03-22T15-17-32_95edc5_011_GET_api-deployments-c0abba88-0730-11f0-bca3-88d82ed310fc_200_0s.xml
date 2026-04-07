@@ -1,0 +1,4 @@
+<step title="Incoming Request" date="2025-03-22T15:17:32.225" instance="95edc5" url="/api/deployments/c0abba88-0730-11f0-bca3-88d82ed310fc" method="GET" type="request" pid="768,1,26" Host="iplpredictionmania.scm.azurewebsites.net" Authorization="Bas..." X-ARR-LOG-ID="608652ec-39f2-47ad-806e-f12ec27eab01" CLIENT-IP="52.172.195.80:1350" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-MS-PLATFORM-INTERNAL="True" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/c0abba88-0730-11f0-bca3-88d82ed310fc" X-Client-IP="52.172.195.80" X-Client-Port="1350" >
+  <step title="DeploymentService.GetResult" date="2025-03-22T15:17:32.254" /><!-- duration: 71ms -->
+  <step title="Outgoing response" date="2025-03-22T15:17:32.344" type="response" statusCode="200" statusText="OK" /><!-- duration: 17ms -->
+</step><!-- duration: 141ms -->

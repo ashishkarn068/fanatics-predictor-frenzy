@@ -1,0 +1,54 @@
+<step title="Incoming Request" date="2026-04-07T10:33:02.681" instance="9d7498" url="/api/publish?type=zip" method="POST" type="request" pid="767,1,19" Accept="*/*" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="AZURECLI/2.63.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." Cache-Control="no-cache" Content-Type="application/octet-stream" Content-Length="95808821" x-ms-client-request-id="e4624553-326c-11f1-825d-88d82ed310fc" x-ms-artifact-checksum="4709a7071d61a909b18799fabe2180ce6e8d08e6752949a67165b4aa37b46c62" X-ARR-LOG-ID="e4624553-326c-11f1-825d-88d82ed310fc" CLIENT-IP="49.207.210.142:2985" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?type=zip" X-Client-IP="49.207.210.142" X-Client-Port="2985" >
+  <step title="OneDeploy" date="2026-04-07T10:33:02.731" >
+    <step title="Starting PushDeployAsync" date="2026-04-07T10:33:02.769" /><!-- duration: 30ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/1046072e-f8d6-463b-bf28-f0dd878fe06a.zip" date="2026-04-07T10:33:02.900" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/1046072e-f8d6-463b-bf28-f0dd878fe06a.zip" date="2026-04-07T10:33:02.932" /><!-- duration: 17ms -->
+    </step><!-- duration: 4545ms -->
+    <step title="Attempting to fetch target branch HEAD" date="2026-04-07T10:33:07.522" /><!-- duration: 2ms -->
+    <step title="Acquiring Deployment Lock" date="2026-04-07T10:33:07.526" /><!-- duration: 15ms -->
+    <step title="Acquired Deployment Lock" date="2026-04-07T10:33:07.594" /><!-- duration: 3ms -->
+    <step title="Performing fetch based deployment" date="2026-04-07T10:33:07.606" >
+      <step title="Creating temporary deployment" date="2026-04-07T10:33:07.611" /><!-- duration: 72ms -->
+      <step title="Releasing Deployment Lock" date="2026-04-07T10:33:08.921" /><!-- duration: 10ms -->
+      <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file /tmp/zipdeploy/1046072e-f8d6-463b-bf28-f0dd878fe06a.zip (91.37 MB) to /tmp/zipdeploy/extracted" date="2026-04-07T10:33:09.104" >
+        <step title="ChmodRecursive Process exited with total time taken in ms: 529" date="2026-04-07T10:33:48.051" /><!-- duration: 7ms -->
+      </step><!-- duration: 38968ms -->
+      <step title="None repository commit" date="2026-04-07T10:33:48.086" >
+        <step title="Commit id: 14d501e0-4234-4999-9034-b857a0b1fbfb" date="2026-04-07T10:33:48.103" Message="OneDeploy" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 12ms -->
+      </step><!-- duration: 43ms -->
+      <step title="Deployment timer started" date="2026-04-07T10:33:50.141" >
+        <step title="DeploymentManager.Deploy(id:14d501e0-4234-4999-9034-b857a0b1fbfb)" date="2026-04-07T10:33:50.148" >
+          <step title="Collecting changeset information" date="2026-04-07T10:33:50.181" /><!-- duration: 168ms -->
+          <step title="Updating submodules" date="2026-04-07T10:33:50.352" /><!-- duration: 1164ms -->
+          <step title="Determining deployment builder" date="2026-04-07T10:33:51.737" >
+            <step title="Builder is OneDeployBuilder" date="2026-04-07T10:33:51.763" /><!-- duration: 22ms -->
+          </step><!-- duration: 62ms -->
+          <step title="PreDeployment: context.CleanOutputPath False" date="2026-04-07T10:33:51.872" >
+            <step title="PreDeployment: context.OutputPath /home/site/wwwroot" date="2026-04-07T10:33:52.035" >
+              <step title="Building" date="2026-04-07T10:33:52.261" >
+                <step title="Executing external process" date="2026-04-07T10:33:53.409" type="process" path="starter.sh" arguments="/opt/Kudu/Scripts/absoluteTar.sh /tmp/zipdeploy/extracted/node_modules /tmp/zipdeploy/extracted/node_modules.tar.gz" >
+                  <step title="Cpu: gzip(1195,37.130s)+sh(1194,0.010s)+tar(1193,2.830s)+absoluteTar.sh(1192,0.000s)=total(39.970s)" date="2026-04-07T10:34:53.672" /><!-- duration: 30ms -->
+                  <step title="starter.sh: no io activity for 60s, prev-cpu=-1.000s, current-cpu=39.970s" date="2026-04-07T10:34:53.721" /><!-- duration: 29ms -->
+                </step><!-- duration: 86847ms -->
+                <step title="Executing external process" date="2026-04-07T10:35:20.750" type="process" path="starter.sh" arguments="/opt/Kudu/Scripts/parallel_rsync.sh /tmp/zipdeploy/extracted /home/site/wwwroot 8 /tmp/ False False node_modules " /><!-- duration: 6905ms -->
+                <step title="Modified file to trigger a restart of the app container." date="2026-04-07T10:35:28.544" /><!-- duration: 13ms -->
+                <step title="Skip function trigger and logicapp sync because function is not enabled." date="2026-04-07T10:35:28.575" /><!-- duration: 12ms -->
+                <step title="Purge deployment items" date="2026-04-07T10:35:30.046" >
+                  <step title="Remove 49e6f620-, Failed, received at 04/07/2026 10:26:12" date="2026-04-07T10:35:30.101" /><!-- duration: 2ms -->
+                  <step title="Remove temp-1bb3, Failed, received at 04/07/2026 10:25:36" date="2026-04-07T10:35:30.181" /><!-- duration: 3ms -->
+                  <step title="Remove 8e411c5e-, Failed, received at 04/07/2026 10:03:59" date="2026-04-07T10:35:30.246" /><!-- duration: 20ms -->
+                  <step title="Remove temp-3daa, Failed, received at 04/07/2026 10:01:55" date="2026-04-07T10:35:30.317" /><!-- duration: 2ms -->
+                  <step title="Remove 4974275b-, Success, received at 03/24/2025 18:15:11" date="2026-04-07T10:35:30.378" /><!-- duration: 3ms -->
+                </step><!-- duration: 348ms -->
+              </step><!-- duration: 98224ms -->
+            </step><!-- duration: 98479ms -->
+            <step title="Cleaning up temp files" date="2026-04-07T10:35:30.538" /><!-- duration: 20ms -->
+            <step title="Cleaning up temp files" date="2026-04-07T10:35:30.561" /><!-- duration: 520ms -->
+            <step title="Reloading status file with latest updates" date="2026-04-07T10:35:31.234" >
+              <step title="WebHooksManager.PublishEventAsync: PostDeployment" date="2026-04-07T10:35:31.273" /><!-- duration: 215ms -->
+            </step><!-- duration: 255ms -->
+            <step title="Cleaning up temporary deployment - fetch deployment was successful" date="2026-04-07T10:35:31.495" /><!-- duration: 2ms -->
+          </step><!-- duration: 99676ms -->
+        </step><!-- duration: 101415ms -->
+        <step title="Outgoing response" date="2026-04-07T10:35:31.619" type="response" statusCode="200" statusText="OK" /><!-- duration: 9ms -->
+      </step><!-- duration: 101490ms -->

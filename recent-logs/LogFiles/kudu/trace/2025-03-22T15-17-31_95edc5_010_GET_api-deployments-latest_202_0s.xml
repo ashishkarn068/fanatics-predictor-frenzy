@@ -1,0 +1,10 @@
+<step title="Incoming Request" date="2025-03-22T15:17:31.600" instance="95edc5" url="/api/deployments/latest" method="GET" type="request" pid="768,1,26" Accept="*/*" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="AZURECLI/2.63.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." x-ms-client-request-id="c0abba88-0730-11f0-bca3-88d82ed310fc" X-ARR-LOG-ID="c0abba88-0730-11f0-bca3-88d82ed310fc" CLIENT-IP="49.207.211.164:51690" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest" X-Client-IP="49.207.211.164" X-Client-Port="51690" >
+  <step title="Cleanup Xml Logs" date="2025-03-22T15:17:31.604" /><!-- duration: 8ms -->
+  <step title="DeploymentService.GetResult" date="2025-03-22T15:17:31.621" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-03-22T15:17:31.625" >
+      <step title="DeploymentManager.GetResults" date="2025-03-22T15:17:31.629" /><!-- duration: 267ms -->
+      <step title="Deployment c0abba88-0730-11f0-bca3-88d82ed310fc is Pending" date="2025-03-22T15:17:31.899" /><!-- duration: 3ms -->
+    </step><!-- duration: 279ms -->
+  </step><!-- duration: 286ms -->
+  <step title="Outgoing response" date="2025-03-22T15:17:31.912" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 3ms -->
+</step><!-- duration: 328ms -->

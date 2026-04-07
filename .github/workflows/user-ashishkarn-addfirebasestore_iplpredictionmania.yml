@@ -98,7 +98,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'iplpredictionmania'
+          app-name: 'iplpred-new'
           slot-name: 'Production'
           package: .
           

@@ -1,0 +1,6 @@
+<step title="Incoming Request" date="2025-03-24T12:45:29.913" instance="95edc5" url="/api/settings" method="GET" type="request" pid="769,1,42" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_3289c43429fe0cd33c612e62d1d8da6336c212d9acc56d8189d5b152fcee89aa" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Content-Length="0" X-ARR-LOG-ID="31186ebd-261f-42ef-9eec-128d53e3ac85" CLIENT-IP="20.161.62.78:47296" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/settings" X-Client-IP="20.161.62.78" X-Client-Port="47296" >
+  <step title="Cleanup Xml Logs" date="2025-03-24T12:45:29.918" >
+    <step title="Cleanup Infos" date="2025-03-24T12:45:29.956" totalFiles="1275" totalCleanup="1115" /><!-- duration: 10ms -->
+  </step><!-- duration: 55ms -->
+  <step title="Outgoing response" date="2025-03-24T12:45:29.993" type="response" statusCode="200" statusText="OK" /><!-- duration: 3ms -->
+</step><!-- duration: 86ms -->

@@ -1,0 +1,103 @@
+2026-04-07T12:42:23  Fetching changes.
+2026-04-07T12:42:23    Starting  LocalZipHandler
+2026-04-07T12:42:23    Cleaning up temp folders from previous zip deployments and extracting pushed zip file /tmp/zipdeploy/cfcccf12-e60a-4449-9f92-60d750228d71.zip (91.53 MB) to /tmp/zipdeploy/extracted
+2026-04-07T12:43:01  Updating submodules.
+2026-04-07T12:43:01  Preparing deployment for commit id '9d2928f2-a'.
+2026-04-07T12:43:02  PreDeployment: context.CleanOutputPath False
+2026-04-07T12:43:02  PreDeployment: context.OutputPath /home/site/wwwroot
+2026-04-07T12:43:02  Repository path is /tmp/zipdeploy/extracted
+2026-04-07T12:43:02  Running oryx build...
+2026-04-07T12:43:02    Command: oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8de94a334d83418 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log
+2026-04-07T12:43:04    Operation performed by Microsoft Oryx, https://github.com/Microsoft/Oryx
+2026-04-07T12:43:04    You can report issues at https://github.com/Microsoft/Oryx/issues
+2026-04-07T12:43:04    
+2026-04-07T12:43:04    Oryx Version: 0.2.20260204.1+0fdbe200b286be083841ff7fa201c6c2316dc6b9, Commit: 0fdbe200b286be083841ff7fa201c6c2316dc6b9, ReleaseTagName: 20260204.1
+2026-04-07T12:43:05    
+2026-04-07T12:43:05    Build Operation ID: cd9e6cff41d59a5c
+2026-04-07T12:43:05    Repository Commit : 9d2928f2-a70a-4a8a-b2ca-83a781c86236
+2026-04-07T12:43:05    OS Type           : bullseye
+2026-04-07T12:43:05    Image Type        : githubactions
+2026-04-07T12:43:05    
+2026-04-07T12:43:05    Primary SDK Storage URL: https://oryx-cdn.microsoft.io
+2026-04-07T12:43:05    Backup SDK Storage URL: 
+2026-04-07T12:43:05    Detecting platforms...
+2026-04-07T12:43:05    External SDK provider is enabled.
+2026-04-07T12:43:05    Requesting metadata for platform nodejs from external SDK provider
+2026-04-07T12:43:08    Requesting metadata for platform nodejs from external SDK provider
+2026-04-07T12:43:13    Detected following platforms:
+2026-04-07T12:43:13      nodejs: 18.20.8
+2026-04-07T12:43:13    Detected the following frameworks: Typescript,Express,React
+2026-04-07T12:43:14    
+2026-04-07T12:43:14    Using intermediate directory '/tmp/8de94a334d83418'.
+2026-04-07T12:43:14    
+2026-04-07T12:43:14    Copying files to the intermediate directory...
+2026-04-07T12:43:14    Copying files to intermediate directory done in 0 sec(s).
+2026-04-07T12:43:14    
+2026-04-07T12:43:14    Source directory     : /tmp/8de94a334d83418
+2026-04-07T12:43:14    Destination directory: /home/site/wwwroot
+2026-04-07T12:43:14    
+2026-04-07T12:43:15    Running build script snippets...
+2026-04-07T12:43:15    Removing existing manifest file
+2026-04-07T12:43:15    Creating directory for command manifest file if it does not exist
+2026-04-07T12:43:15    Creating a manifest file...
+2026-04-07T12:43:15    Node Build Command Manifest file created.
+2026-04-07T12:43:15    
+2026-04-07T12:43:15    Using Node version:
+2026-04-07T12:43:15    v18.20.8
+2026-04-07T12:43:15    
+2026-04-07T12:43:15    Using Npm version:
+2026-04-07T12:43:17    10.8.2
+2026-04-07T12:43:17    
+2026-04-07T12:43:17    Running 'npm install'...
+2026-04-07T12:43:17    
+2026-04-07T12:46:27    
+2026-04-07T12:46:27    added 688 packages, and audited 689 packages in 3m
+2026-04-07T12:46:27    
+2026-04-07T12:46:27    106 packages are looking for funding
+2026-04-07T12:46:27      run `npm fund` for details
+2026-04-07T12:46:28    
+2026-04-07T12:46:28    35 vulnerabilities (11 low, 9 moderate, 13 high, 2 critical)
+2026-04-07T12:46:29    
+2026-04-07T12:46:29    To address issues that do not require attention, run:
+2026-04-07T12:46:29      npm audit fix
+2026-04-07T12:46:29    
+2026-04-07T12:46:29    To address all issues (including breaking changes), run:
+2026-04-07T12:46:29      npm audit fix --force
+2026-04-07T12:46:29    
+2026-04-07T12:46:29    Run `npm audit` for details.
+2026-04-07T12:46:33    
+2026-04-07T12:46:33    Running 'npm run build'...
+2026-04-07T12:46:33    
+2026-04-07T12:46:37    
+2026-04-07T12:46:37    > vite_react_shadcn_ts@0.0.0 build
+2026-04-07T12:46:37    > vite build
+2026-04-07T12:46:37    
+2026-04-07T12:46:38    vite v5.4.10 building for production...
+2026-04-07T12:46:38    ✓ 0 modules transformed.
+2026-04-07T12:46:38    x Build failed in 111ms
+2026-04-07T12:46:38    error during build:
+2026-04-07T12:46:38    Could not resolve entry module "index.html".
+2026-04-07T12:46:38        at getRollupError (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/parseAst.js:395:41)
+2026-04-07T12:46:38        at error (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/parseAst.js:391:42)
+2026-04-07T12:46:38        at ModuleLoader.loadEntryModule (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/node-entry.js:20027:20)
+2026-04-07T12:46:38        at async Promise.all (index 0)
+2026-04-07T12:46:40    x Build failed in 111ms
+error during build:
+Could not resolve entry module "index.html".
+    at getRollupError (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/parseAst.js:395:41)
+    at error (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/parseAst.js:391:42)
+    at ModuleLoader.loadEntryModule (file:///tmp/8de94a334d83418/node_modules/rollup/dist/es/shared/node-entry.js:20027:20)
+    at async Promise.all (index 0)
+/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8de94a334d83418 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
+2026-04-07T12:46:40  
+2026-04-07T12:46:40  
+2026-04-07T12:46:40  Generating summary of Oryx build
+2026-04-07T12:46:40  Parsing the build logs
+2026-04-07T12:46:41  Found 0 issue(s)
+2026-04-07T12:46:41  
+2026-04-07T12:46:41  Build Summary :
+2026-04-07T12:46:41  ===============
+2026-04-07T12:46:41  Errors (0)
+2026-04-07T12:46:41  Warnings (0)
+2026-04-07T12:46:41  
+2026-04-07T12:46:42  Deployment Failed. deployer = OneDeploy deploymentPath = OneDeploy

@@ -1,0 +1,25 @@
+<step title="BackgroundTrace" date="2026-04-07T10:01:55.060" instance="9d7498" url="/api/publish" method="POST" >
+  <step title="Cleanup Xml Logs" date="2026-04-07T10:01:55.062" >
+    <step title="Cleanup Infos" date="2026-04-07T10:01:55.131" totalFiles="4398" totalCleanup="4238" /><!-- duration: 21ms -->
+  </step><!-- duration: 92ms -->
+  <step title="Creating temporary deployment - FetchDeploymentManager" date="2026-04-07T10:01:55.260" /><!-- duration: 2ms -->
+  <step title="Creating temporary deployment" date="2026-04-07T10:01:55.266" /><!-- duration: 110ms -->
+  <step title="Performing fetch based deployment" date="2026-04-07T10:01:55.430" >
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file /tmp/zipdeploy/f3318154-ba19-4068-b911-3bdd58d964c9.zip (101.00 MB) to /tmp/zipdeploy/extracted" date="2026-04-07T10:01:56.627" >
+      <step title="ChmodRecursive Process exited with total time taken in ms: 612" date="2026-04-07T10:03:57.023" /><!-- duration: 2ms -->
+    </step><!-- duration: 120486ms -->
+    <step title="Deployment timer started" date="2026-04-07T10:03:59.233" >
+      <step title="DeploymentManager.Deploy(id:8e411c5e-0195-46ee-88ad-6a0c2255b7ae)" date="2026-04-07T10:03:59.245" >
+        <step title="Collecting changeset information" date="2026-04-07T10:03:59.276" /><!-- duration: 382ms -->
+        <step title="Updating submodules" date="2026-04-07T10:03:59.677" /><!-- duration: 1341ms -->
+        <step title="Determining deployment builder" date="2026-04-07T10:04:01.538" >
+          <step title="Builder is OneDeployBuilder" date="2026-04-07T10:04:01.699" /><!-- duration: 20ms -->
+        </step><!-- duration: 222ms -->
+        <step title="PreDeployment: context.CleanOutputPath False" date="2026-04-07T10:04:02.061" >
+          <step title="PreDeployment: context.OutputPath /home/site/wwwroot" date="2026-04-07T10:04:02.463" >
+            <step title="Building" date="2026-04-07T10:04:02.805" >
+              <step title="Executing external process" date="2026-04-07T10:04:05.104" type="process" path="starter.sh" arguments="/opt/Kudu/Scripts/absoluteTar.sh /tmp/zipdeploy/extracted/node_modules /tmp/zipdeploy/extracted/node_modules.tar.gz" >
+                <step title="Cpu: gzip(906,23.700s)+sh(905,0.000s)+tar(904,3.300s)+absoluteTar.sh(902,0.030s)=total(27.030s)" date="2026-04-07T10:05:05.641" /><!-- duration: 22ms -->
+                <step title="starter.sh: no io activity for 60s, prev-cpu=-1.000s, current-cpu=27.030s" date="2026-04-07T10:05:05.673" /><!-- duration: 39ms -->
+              </step><!-- duration: 100140ms -->
+              <step title="Executing external process" date="2026-04-07T10:05:45.573" type="process" path="starter.sh" arguments="/opt/Kudu/Scripts/parallel_rsync.sh /tmp/zipdeploy/extracted /home/site/wwwroot 8 /tmp/ False False node_modules " /><!-- duration: 7196ms -->

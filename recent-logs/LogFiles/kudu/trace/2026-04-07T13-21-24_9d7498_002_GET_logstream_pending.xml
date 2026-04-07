@@ -1,0 +1,5 @@
+<step title="Incoming Request" date="2026-04-07T13:21:24.584" instance="9d7498" url="/logstream" method="GET" type="request" pid="767,1,18" Host="iplpredictionmania.scm.azurewebsites.net" User-Agent="AZURECLI/2.63.0 (MSI)" Accept-Encoding="identity" Authorization="Bea..." x-ms-client-request-id="1b03b769-3284-11f1-ad3b-88d82ed310fc" X-ARR-LOG-ID="1b03b769-3284-11f1-ad3b-88d82ed310fc" CLIENT-IP="49.207.210.142:2440" X-SITE-DEPLOYMENT-ID="iplPredictionMania" WAS-DEFAULT-HOSTNAME="iplpredictionmania.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/logstream" X-Client-IP="49.207.210.142" X-Client-Port="2440" >
+  <step title="Cleanup Xml Logs" date="2026-04-07T13:21:24.588" >
+    <step title="Cleanup Infos" date="2026-04-07T13:21:24.667" totalFiles="4738" totalCleanup="4578" /><!-- duration: 90ms -->
+  </step><!-- duration: 172ms -->
+  <step title="LogStreamHandlerMiddleware.Invoke" date="2026-04-07T13:21:24.828" /><!-- duration: 1062ms -->

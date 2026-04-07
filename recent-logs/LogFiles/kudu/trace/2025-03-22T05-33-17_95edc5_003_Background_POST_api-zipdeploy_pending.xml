@@ -1,0 +1,150 @@
+<step title="BackgroundTrace" date="2025-03-22T05:33:17.972" instance="95edc5" url="/api/zipdeploy" method="POST" >
+  <step title="Creating temporary deployment - FetchDeploymentManager" date="2025-03-22T05:33:18.032" /><!-- duration: 3ms -->
+  <step title="Creating temporary deployment" date="2025-03-22T05:33:18.037" /><!-- duration: 36ms -->
+  <step title="Performing fetch based deployment" date="2025-03-22T05:33:18.144" >
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file /tmp/zipdeploy/dfbeb43f-bd50-499a-aaf5-8930e164e028.zip (0.16 MB) to /tmp/zipdeploy/extracted" date="2025-03-22T05:33:19.484" >
+      <step title="ChmodRecursive Process exited with total time taken in ms: 30" date="2025-03-22T05:33:19.567" /><!-- duration: 9ms -->
+    </step><!-- duration: 103ms -->
+    <step title="Deployment timer started" date="2025-03-22T05:33:21.620" >
+      <step title="DeploymentManager.Deploy(id:0fb2e59e-06df-11f0-9e6d-88d82ed310fc)" date="2025-03-22T05:33:21.628" >
+        <step title="Collecting changeset information" date="2025-03-22T05:33:21.646" /><!-- duration: 47ms -->
+        <step title="Updating submodules" date="2025-03-22T05:33:21.698" /><!-- duration: 1076ms -->
+        <step title="Determining deployment builder" date="2025-03-22T05:33:22.938" >
+          <step title="Builder is OryxBuilder" date="2025-03-22T05:33:22.950" /><!-- duration: 3ms -->
+        </step><!-- duration: 18ms -->
+        <step title="PreDeployment: context.CleanOutputPath False" date="2025-03-22T05:33:23.015" >
+          <step title="PreDeployment: context.OutputPath /home/site/wwwroot" date="2025-03-22T05:33:23.086" >
+            <step title="Building" date="2025-03-22T05:33:23.174" >
+              <step title="Executing external process" date="2025-03-22T05:33:23.962" type="process" path="bash" arguments="-c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" >
+                <step title="Cpu: npm install(928,30.920s)+build.sh(823,0.050s)+oryx(802,5.970s)+tee(803,0.000s)+bash(801,0.000s)=total(36.940s)" date="2025-03-22T05:34:52.221" /><!-- duration: 28ms -->
+                <step title="bash: no io activity for 60s, prev-cpu=-1.000s, current-cpu=36.940s" date="2025-03-22T05:34:52.726" /><!-- duration: 39ms -->
+                <step title="Cpu: npm install(928,59.190s)+build.sh(823,0.050s)+oryx(802,6.390s)+tee(803,0.000s)+bash(801,0.000s)=total(65.630s)" date="2025-03-22T05:35:53.530" /><!-- duration: 50ms -->
+                <step title="bash: no io activity for 124s, prev-cpu=36.940s, current-cpu=65.630s" date="2025-03-22T05:35:53.609" /><!-- duration: 20ms -->
+                <step title="Process dump" date="2025-03-22T05:36:58.460" exitCode="1" type="processOutput" /><!-- duration: 12ms -->
+              </step><!-- duration: 214524ms -->
+              <step title="Error occurred" date="2025-03-22T05:36:58.677" type="error" text="NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+x Build failed in 2.38s
+error during build:
+[vite]: Rollup failed to resolve import &quot;/src/main.tsx&quot; from &quot;/tmp/8dd69030fee9f37/index.html&quot;.
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65589:17)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/@vitejs/plugin-react-swc/index.mjs:206:9)
+    at onRollupWarning (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65619:5)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65284:7)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19393:13
+    at Object.logger [as onLog] (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:21119:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:20008:26)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19966:26
+/bin/bash -c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" stackTrace="   at Kudu.Core.Infrastructure.Executable.ExecuteInternal(ITracer tracer, Func`2 onWriteOutput, Func`2 onWriteError, CancellationToken token, Encoding encoding, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 239
+   at Kudu.Core.Infrastructure.Executable.ExecuteWithProgressWriter(ILogger logger, ITracer tracer, CancellationToken token, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 118
+   at Kudu.Core.Deployment.Generator.ExternalCommandBuilder.RunCommand(DeploymentContext context, String command, Boolean ignoreManifest, CancellationToken token, String message) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/ExternalCommandBuilder.cs:line 114" /><!-- duration: 19ms -->
+              <step title="Error occurred" date="2025-03-22T05:36:58.739" type="error" text="NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+x Build failed in 2.38s
+error during build:
+[vite]: Rollup failed to resolve import &quot;/src/main.tsx&quot; from &quot;/tmp/8dd69030fee9f37/index.html&quot;.
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65589:17)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/@vitejs/plugin-react-swc/index.mjs:206:9)
+    at onRollupWarning (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65619:5)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65284:7)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19393:13
+    at Object.logger [as onLog] (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:21119:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:20008:26)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19966:26
+/bin/bash -c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" stackTrace="   at Kudu.Core.Infrastructure.Executable.ExecuteInternal(ITracer tracer, Func`2 onWriteOutput, Func`2 onWriteError, CancellationToken token, Encoding encoding, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 239
+   at Kudu.Core.Infrastructure.Executable.ExecuteWithProgressWriter(ILogger logger, ITracer tracer, CancellationToken token, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 118
+   at Kudu.Core.Deployment.Generator.ExternalCommandBuilder.RunCommand(DeploymentContext context, String command, Boolean ignoreManifest, CancellationToken token, String message) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/ExternalCommandBuilder.cs:line 114
+   at Kudu.Core.Deployment.Generator.OryxBuilder.RunBuildCommand(IOryxArguments args, DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 270
+   at Kudu.Core.Deployment.Generator.OryxBuilder.Build(DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 107
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 770" /><!-- duration: 9ms -->
+              <step title="Using GenericDeploymentLogParser" date="2025-03-22T05:36:59.090" /><!-- duration: 3ms -->
+            </step><!-- duration: 216783ms -->
+          </step><!-- duration: 216882ms -->
+          <step title="Error occurred" date="2025-03-22T05:36:59.972" type="error" text="NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+x Build failed in 2.38s
+error during build:
+[vite]: Rollup failed to resolve import &quot;/src/main.tsx&quot; from &quot;/tmp/8dd69030fee9f37/index.html&quot;.
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65589:17)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/@vitejs/plugin-react-swc/index.mjs:206:9)
+    at onRollupWarning (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65619:5)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65284:7)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19393:13
+    at Object.logger [as onLog] (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:21119:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:20008:26)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19966:26
+/bin/bash -c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" stackTrace="   at Kudu.Core.Infrastructure.Executable.ExecuteInternal(ITracer tracer, Func`2 onWriteOutput, Func`2 onWriteError, CancellationToken token, Encoding encoding, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 239
+   at Kudu.Core.Infrastructure.Executable.ExecuteWithProgressWriter(ILogger logger, ITracer tracer, CancellationToken token, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 118
+   at Kudu.Core.Deployment.Generator.ExternalCommandBuilder.RunCommand(DeploymentContext context, String command, Boolean ignoreManifest, CancellationToken token, String message) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/ExternalCommandBuilder.cs:line 114
+   at Kudu.Core.Deployment.Generator.OryxBuilder.RunBuildCommand(IOryxArguments args, DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 270
+   at Kudu.Core.Deployment.Generator.OryxBuilder.Build(DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 107
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 770
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 839" /><!-- duration: 3ms -->
+          <step title="Cleaning up temp files" date="2025-03-22T05:37:00.071" /><!-- duration: 13039ms -->
+          <step title="Cleaning up temp files" date="2025-03-22T05:37:13.119" /><!-- duration: 547ms -->
+          <step title="Error occurred" date="2025-03-22T05:37:13.724" type="error" text="NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+x Build failed in 2.38s
+error during build:
+[vite]: Rollup failed to resolve import &quot;/src/main.tsx&quot; from &quot;/tmp/8dd69030fee9f37/index.html&quot;.
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65589:17)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/@vitejs/plugin-react-swc/index.mjs:206:9)
+    at onRollupWarning (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65619:5)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65284:7)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19393:13
+    at Object.logger [as onLog] (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:21119:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:20008:26)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19966:26
+/bin/bash -c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" stackTrace="   at Kudu.Core.Infrastructure.Executable.ExecuteInternal(ITracer tracer, Func`2 onWriteOutput, Func`2 onWriteError, CancellationToken token, Encoding encoding, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 239
+   at Kudu.Core.Infrastructure.Executable.ExecuteWithProgressWriter(ILogger logger, ITracer tracer, CancellationToken token, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 118
+   at Kudu.Core.Deployment.Generator.ExternalCommandBuilder.RunCommand(DeploymentContext context, String command, Boolean ignoreManifest, CancellationToken token, String message) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/ExternalCommandBuilder.cs:line 114
+   at Kudu.Core.Deployment.Generator.OryxBuilder.RunBuildCommand(IOryxArguments args, DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 270
+   at Kudu.Core.Deployment.Generator.OryxBuilder.Build(DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 107
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 770
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 839
+   at Kudu.Core.Deployment.DeploymentManager.DeployAsync(IRepository repository, ChangeSet changeSet, String deployer, Boolean clean, DeploymentInfoBase deploymentInfo, Boolean needFileUpdate, Boolean fullBuildByDefault) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 266" /><!-- duration: 10ms -->
+        </step><!-- duration: 230727ms -->
+        <step title="Reloading status file with latest updates" date="2025-03-22T05:37:13.814" >
+          <step title="WebHooksManager.PublishEventAsync: PostDeployment" date="2025-03-22T05:37:13.833" /><!-- duration: 185ms -->
+        </step><!-- duration: 211ms -->
+        <step title="Error occurred" date="2025-03-22T05:37:14.035" type="error" text="NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+x Build failed in 2.38s
+error during build:
+[vite]: Rollup failed to resolve import &quot;/src/main.tsx&quot; from &quot;/tmp/8dd69030fee9f37/index.html&quot;.
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65589:17)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/@vitejs/plugin-react-swc/index.mjs:206:9)
+    at onRollupWarning (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65619:5)
+    at onwarn (file:///tmp/8dd69030fee9f37/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:65284:7)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19393:13
+    at Object.logger [as onLog] (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:21119:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:20008:26)
+    at file:///tmp/8dd69030fee9f37/node_modules/rollup/dist/es/shared/node-entry.js:19966:26
+/bin/bash -c &quot;oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform nodejs --platform-version 18 -p virtualenv_name= --log-file /tmp/build-debug.log  -i /tmp/8dd69030fee9f37 -p compress_node_modules=tar-gz | tee /tmp/oryx-build.log ; exit $PIPESTATUS &quot;" stackTrace="   at Kudu.Core.Infrastructure.Executable.ExecuteInternal(ITracer tracer, Func`2 onWriteOutput, Func`2 onWriteError, CancellationToken token, Encoding encoding, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 239
+   at Kudu.Core.Infrastructure.Executable.ExecuteWithProgressWriter(ILogger logger, ITracer tracer, CancellationToken token, String arguments, Object[] args) in /tmp/KuduLite/Kudu.Core/Infrastructure/Executable.cs:line 118
+   at Kudu.Core.Deployment.Generator.ExternalCommandBuilder.RunCommand(DeploymentContext context, String command, Boolean ignoreManifest, CancellationToken token, String message) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/ExternalCommandBuilder.cs:line 114
+   at Kudu.Core.Deployment.Generator.OryxBuilder.RunBuildCommand(IOryxArguments args, DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 270
+   at Kudu.Core.Deployment.Generator.OryxBuilder.Build(DeploymentContext context, CancellationToken token) in /tmp/KuduLite/Kudu.Core/Deployment/Generator/OryxBuilder.cs:line 107
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 770
+   at Kudu.Core.Deployment.DeploymentManager.Build(ChangeSet changeSet, ITracer tracer, IDisposable deployStep, IRepository repository, DeploymentInfoBase deploymentInfo, DeploymentAnalytics deploymentAnalytics, Boolean fullBuildByDefault, CancellationToken cancellationToken) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 839
+   at Kudu.Core.Deployment.DeploymentManager.DeployAsync(IRepository repository, ChangeSet changeSet, String deployer, Boolean clean, DeploymentInfoBase deploymentInfo, Boolean needFileUpdate, Boolean fullBuildByDefault) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 266" /><!-- duration: 3ms -->
+        <step title="Marking deployment as failed and cleaning up the temp deployment" date="2025-03-22T05:37:14.128" /><!-- duration: 18ms -->
+      </step><!-- duration: 232660ms -->
+      <step title="Error occurred" date="2025-03-22T05:37:14.319" type="error" text="One or more errors occurred. (Deployment failed)" stackTrace="   at System.Threading.Tasks.Task.Wait(Int32 , CancellationToken )
+   at System.Threading.Tasks.Task.Wait()
+   at Kudu.Core.Deployment.FetchDeploymentManager.&lt;&gt;c__DisplayClass22_1.&lt;PerformBackgroundDeployment&gt;b__3() in /tmp/KuduLite/Kudu.Core/Deployment/FetchDeploymentManager.cs:line 411
+   at Kudu.Contracts.Infrastructure.LockExtensions.TryLockOperation(IOperationLock lockObj, Action operation, String operationName, TimeSpan timeout) in /tmp/KuduLite/Kudu.Contracts/Infrastructure/LockExtensions.cs:line 34
+   at Kudu.Contracts.Infrastructure.LockExtensions.LockOperation(IOperationLock lockObj, Action operation, String operationName, TimeSpan timeout) in /tmp/KuduLite/Kudu.Contracts/Infrastructure/LockExtensions.cs:line 46
+   at Kudu.Core.Deployment.FetchDeploymentManager.&lt;&gt;c__DisplayClass22_0.&lt;PerformBackgroundDeployment&gt;b__1() in /tmp/KuduLite/Kudu.Core/Deployment/FetchDeploymentManager.cs:line 393" innerText="Deployment failed" innerStackTrace="   at Kudu.Core.Deployment.DeploymentManager.DeployAsync(IRepository repository, ChangeSet changeSet, String deployer, Boolean clean, DeploymentInfoBase deploymentInfo, Boolean needFileUpdate, Boolean fullBuildByDefault) in /tmp/KuduLite/Kudu.Core/Deployment/DeploymentManager.cs:line 307
+   at Kudu.Core.Deployment.FetchDeploymentManager.PerformDeployment(DeploymentInfoBase deploymentInfo, IDisposable tempDeployment, ChangeSet tempChangeSet, DeployStatusApiResult updateStatusObj) in /tmp/KuduLite/Kudu.Core/Deployment/FetchDeploymentManager.cs:line 230" /><!-- duration: 8ms -->
+    </step><!-- duration: 232726ms -->
