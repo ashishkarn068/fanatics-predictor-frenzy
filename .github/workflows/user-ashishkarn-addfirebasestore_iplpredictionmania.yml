@@ -46,11 +46,21 @@ jobs:
           # Install production dependencies only
           cd deploy-package
           npm ci --omit=dev
+          # Verify node_modules exists
+          echo "Checking node_modules..."
+          ls -la node_modules | head -20
+          echo "express package:"
+          ls -la node_modules/express 2>/dev/null || echo "express not found!"
 
       - name: Zip artifact for deployment
         run: |
           cd deploy-package
-          zip -r ../release.zip .
+          echo "Files in deploy-package:"
+          ls -la
+          echo "Creating zip with node_modules..."
+          zip -r ../release.zip . -x "*.git*"
+          echo "Zip size:"
+          ls -lh ../release.zip
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
