@@ -126,3 +126,53 @@ export const getTeamColors = (teamName: string): { primary: string; secondary: s
   
   return teamColors[teamName] || { primary: '#718096', secondary: '#CBD5E0' };
 };
+
+/**
+ * Map of team IDs (lowercase, no spaces) to full team names
+ */
+export const teamIdToName: Record<string, string> = {
+  'mumbaiindians': 'Mumbai Indians',
+  'chennaisuperkings': 'Chennai Super Kings',
+  'royalchallengersbengaluru': 'Royal Challengers Bengaluru',
+  'royalchallengersbangalore': 'Royal Challengers Bengaluru',
+  'kolkataknightriders': 'Kolkata Knight Riders',
+  'delhicapitals': 'Delhi Capitals',
+  'rajasthanroyals': 'Rajasthan Royals',
+  'sunrisershyderabad': 'Sunrisers Hyderabad',
+  'punjabkings': 'Punjab Kings',
+  'gujarattitans': 'Gujarat Titans',
+  'lucknowsupergiants': 'Lucknow Super Giants',
+  'mi': 'Mumbai Indians',
+  'csk': 'Chennai Super Kings',
+  'rcb': 'Royal Challengers Bengaluru',
+  'kkr': 'Kolkata Knight Riders',
+  'dc': 'Delhi Capitals',
+  'rr': 'Rajasthan Royals',
+  'srh': 'Sunrisers Hyderabad',
+  'pbks': 'Punjab Kings',
+  'gt': 'Gujarat Titans',
+  'lsg': 'Lucknow Super Giants',
+};
+
+/**
+ * Converts team ID to proper display name
+ * @param teamIdOrName Team ID (like "royalchallengersbengaluru") or team name
+ * @returns Properly formatted team name
+ */
+export const getTeamDisplayName = (teamIdOrName: string): string => {
+  if (!teamIdOrName) return 'Unknown';
+  
+  // If it's already a proper team name (has spaces), return as-is
+  if (teamIdOrName.includes(' ')) {
+    return teamIdOrName;
+  }
+  
+  // Try to find in the ID map
+  const lowerId = teamIdOrName.toLowerCase();
+  if (teamIdToName[lowerId]) {
+    return teamIdToName[lowerId];
+  }
+  
+  // Fallback: return the original
+  return teamIdOrName;
+};

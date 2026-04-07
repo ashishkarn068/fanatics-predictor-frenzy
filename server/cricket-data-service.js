@@ -356,14 +356,65 @@ async function getEspnMatches() {
   return espnMatchCache;
 }
 
-function findEspnMatch(espnMatches, team1Name, team2Name) {
+function findEspnMatch(espnMatches, team1Name, team2Name, matchOrder = null, matchDate = null) {
+  const reqT1 = resolveTeamId(team1Name);
+  const reqT2 = resolveTeamId(team2Name);
+  
+  // First try: match by team names AND match order (most accurate)
+  if (matchOrder) {
+    for (const em of espnMatches) {
+      if (!em.teams || em.teams.length < 2) continue;
+      const tid1 = resolveTeamId(em.teams[0].team.longName);
+      const tid2 = resolveTeamId(em.teams[1].team.longName);
+      const teamsMatch = (tid1 === reqT1 && tid2 === reqT2) || (tid1 === reqT2 && tid2 === reqT1);
+      
+      // Check if the slug contains the match number
+      if (teamsMatch && em.slug) {
+        const orderMatch = em.slug.match(/(\d+)(?:st|nd|rd|th)-match/);
+        if (orderMatch && parseInt(orderMatch[1]) === parseInt(matchOrder)) {
+          console.log(`[CricketDataService] Found ESPN match by order: ${em.slug}`);
+          return em;
+        }
+      }
+    }
+  }
+  
+  // Second try: match by team names AND closest date
+  if (matchDate) {
+    const targetDate = new Date(matchDate);
+    let bestMatch = null;
+    let bestDiff = Infinity;
+    
+    for (const em of espnMatches) {
+      if (!em.teams || em.teams.length < 2) continue;
+      const tid1 = resolveTeamId(em.teams[0].team.longName);
+      const tid2 = resolveTeamId(em.teams[1].team.longName);
+      const teamsMatch = (tid1 === reqT1 && tid2 === reqT2) || (tid1 === reqT2 && tid2 === reqT1);
+      
+      if (teamsMatch && em.startDate) {
+        const espnDate = new Date(em.startDate);
+        const diff = Math.abs(espnDate - targetDate);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestMatch = em;
+        }
+      }
+    }
+    
+    // Only use if date is within 2 days
+    if (bestMatch && bestDiff < 2 * 24 * 60 * 60 * 1000) {
+      console.log(`[CricketDataService] Found ESPN match by date: ${bestMatch.slug} (diff: ${Math.round(bestDiff / 1000 / 60)} min)`);
+      return bestMatch;
+    }
+  }
+  
+  // Fallback: first match of these teams (might be wrong if they play multiple times)
   for (const em of espnMatches) {
     if (!em.teams || em.teams.length < 2) continue;
     const tid1 = resolveTeamId(em.teams[0].team.longName);
     const tid2 = resolveTeamId(em.teams[1].team.longName);
-    const reqT1 = resolveTeamId(team1Name);
-    const reqT2 = resolveTeamId(team2Name);
     if ((tid1 === reqT1 && tid2 === reqT2) || (tid1 === reqT2 && tid2 === reqT1)) {
+      console.log(`[CricketDataService] Found ESPN match by teams only (fallback): ${em.slug}`);
       return em;
     }
   }
@@ -375,15 +426,17 @@ function findEspnMatch(espnMatches, team1Name, team2Name) {
  * @param {string} matchId — The IPL match ID
  * @param {string} [team1] — team1 name for matching
  * @param {string} [team2] — team2 name for matching
+ * @param {number} [matchOrder] — match number in the series (e.g., 12 for "12th match")
+ * @param {string} [matchDate] — ISO date string for the match
  */
-export async function fetchMatchScorecard(matchId, team1, team2) {
-  console.log(`[CricketDataService] Fetching scorecard for match ${matchId} from ESPNcricinfo`);
+export async function fetchMatchScorecard(matchId, team1, team2, matchOrder = null, matchDate = null) {
+  console.log(`[CricketDataService] Fetching scorecard for match ${matchId} from ESPNcricinfo (order: ${matchOrder}, date: ${matchDate})`);
 
   const espnMatches = await getEspnMatches();
   let espnMatch = null;
 
   if (team1 && team2) {
-    espnMatch = findEspnMatch(espnMatches, team1, team2);
+    espnMatch = findEspnMatch(espnMatches, team1, team2, matchOrder, matchDate);
   }
   if (!espnMatch) {
     for (const em of espnMatches) {
@@ -398,6 +451,8 @@ export async function fetchMatchScorecard(matchId, team1, team2) {
     console.log(`[CricketDataService] Could not find ESPN match for ID ${matchId}`);
     return { matchCompleted: false, error: 'Match not found on ESPNcricinfo' };
   }
+  
+  console.log(`[CricketDataService] Using ESPN match: ${espnMatch.slug}-${espnMatch.objectId}`);
 
   if (espnMatch.state !== 'POST' && espnMatch.stage !== 'FINISHED') {
     console.log(`[CricketDataService] Match not completed yet (state: ${espnMatch.state})`);

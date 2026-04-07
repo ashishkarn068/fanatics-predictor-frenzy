@@ -26,6 +26,8 @@ import {
   getMatchMappings,
   clearProcessedMatches,
   getSchedulerLogs,
+  getReadyResults,
+  markResultApplied,
 } from './server/match-scheduler.js';
 
 // Initialize environment variables
@@ -178,9 +180,15 @@ app.get('/api/cricket/scorecard/:cricbuzzMatchId', async (req, res) => {
     if (!/^\d+$/.test(cricbuzzMatchId)) {
       return res.status(400).json({ success: false, error: 'Invalid match ID format' });
     }
-    const { team1, team2 } = req.query;
-    console.log(`Fetching scorecard for match ${cricbuzzMatchId} from ESPN...`);
-    const scorecard = await fetchMatchScorecard(cricbuzzMatchId, team1, team2);
+    const { team1, team2, matchOrder, matchDate } = req.query;
+    console.log(`Fetching scorecard for match ${cricbuzzMatchId} from ESPN (order: ${matchOrder})...`);
+    const scorecard = await fetchMatchScorecard(
+      cricbuzzMatchId, 
+      team1, 
+      team2, 
+      matchOrder ? parseInt(matchOrder) : null,
+      matchDate || null
+    );
     res.json({ success: true, result: scorecard, source: 'espncricinfo', fetchedAt: new Date().toISOString() });
   } catch (error) {
     console.error('Error fetching match scorecard:', error);
@@ -296,6 +304,21 @@ app.post('/api/scheduler/clear-processed', (req, res) => {
 // Get scheduler logs
 app.get('/api/scheduler/logs', (req, res) => {
   res.json(getSchedulerLogs());
+});
+
+// Get results ready to be applied
+app.get('/api/scheduler/ready-results', (req, res) => {
+  res.json({ success: true, results: getReadyResults() });
+});
+
+// Mark a result as applied
+app.post('/api/scheduler/mark-applied', (req, res) => {
+  const { firestoreMatchId } = req.body;
+  if (!firestoreMatchId) {
+    return res.status(400).json({ success: false, error: 'firestoreMatchId is required' });
+  }
+  const result = markResultApplied(firestoreMatchId);
+  res.json({ success: result });
 });
 
 // Serve static files from the dist directory (after build)

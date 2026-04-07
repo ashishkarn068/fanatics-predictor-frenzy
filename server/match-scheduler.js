@@ -16,6 +16,7 @@ let schedulerState = {
   pendingMatches: [],      // Matches we're watching for completion
   processedMatches: [],    // Cricbuzz match IDs we've already processed
   cricbuzzMatchMap: {},    // Maps our Firestore match IDs → Cricbuzz match IDs
+  readyResults: [],        // Results ready to be applied to Firestore (not yet applied)
   logs: [],                // Recent log entries (circular buffer)
 };
 
@@ -40,16 +41,28 @@ function addLog(level, message, data = null) {
  * This mapping is needed because Cricbuzz has its own match IDs.
  */
 function matchFirestoreWithCricbuzz(firestoreMatch, cricbuzzMatches) {
-  const team1Name = TEAM_ID_TO_NAME[firestoreMatch.team1] || firestoreMatch.team1;
-  const team2Name = TEAM_ID_TO_NAME[firestoreMatch.team2] || firestoreMatch.team2;
+  // First: Try to extract match ID from firestore match ID (e.g., "ipl_2428" -> "2428")
+  const matchIdMatch = firestoreMatch.firestoreMatchId?.match(/(\d+)$/);
+  if (matchIdMatch) {
+    const extractedId = matchIdMatch[1];
+    const directMatch = cricbuzzMatches.find(cm => 
+      cm.cricbuzzMatchId === extractedId || cm.iplMatchId === extractedId
+    );
+    if (directMatch) {
+      addLog('info', `Matched by ID: ${firestoreMatch.firestoreMatchId} → ${directMatch.cricbuzzMatchId}`);
+      return directMatch;
+    }
+  }
 
-  // Find a Cricbuzz match where both team IDs match
+  // Second: Match by team IDs
   const match = cricbuzzMatches.find(cm => {
     const cmTeam1Id = resolveTeamId(cm.team1);
     const cmTeam2Id = resolveTeamId(cm.team2);
+    const fsTeam1 = resolveTeamId(firestoreMatch.team1);
+    const fsTeam2 = resolveTeamId(firestoreMatch.team2);
     return (
-      (cmTeam1Id === firestoreMatch.team1 && cmTeam2Id === firestoreMatch.team2) ||
-      (cmTeam1Id === firestoreMatch.team2 && cmTeam2Id === firestoreMatch.team1)
+      (cmTeam1Id === fsTeam1 && cmTeam2Id === fsTeam2) ||
+      (cmTeam1Id === fsTeam2 && cmTeam2Id === fsTeam1)
     );
   });
 
@@ -94,10 +107,18 @@ async function schedulerTick() {
         const matched = matchFirestoreWithCricbuzz(pending, cricbuzzMatches);
         if (matched) {
           cricbuzzMatchId = matched.cricbuzzMatchId;
+          // Extract match number from matchOrder (e.g., "Match 12" -> 12)
+          let matchOrder = null;
+          if (matched.matchOrder) {
+            const orderMatch = String(matched.matchOrder).match(/(\d+)/);
+            if (orderMatch) matchOrder = parseInt(orderMatch[1]);
+          }
           schedulerState.cricbuzzMatchMap[pending.firestoreMatchId] = {
             cricbuzzMatchId,
             team1: matched.team1,
             team2: matched.team2,
+            matchOrder,
+            startDate: matched.startDate,
           };
           addLog('info', `Auto-matched Firestore match ${pending.firestoreMatchId} → Cricbuzz ${cricbuzzMatchId}`);
         } else {
@@ -106,19 +127,36 @@ async function schedulerTick() {
         }
       }
 
+      // Get the full match mapping with team names
+      const matchMapping = schedulerState.cricbuzzMatchMap[pending.firestoreMatchId];
+
       // Skip already processed matches
       if (schedulerState.processedMatches.includes(cricbuzzMatchId)) {
         continue;
       }
 
-      // 3. Fetch the scorecard
+      // 3. Fetch the scorecard with team names and match order for better ESPN matching
       try {
-        const scorecard = await fetchMatchScorecard(cricbuzzMatchId);
+        const scorecard = await fetchMatchScorecard(
+          cricbuzzMatchId,
+          matchMapping?.team1 || pending.team1,
+          matchMapping?.team2 || pending.team2,
+          matchMapping?.matchOrder || null,
+          matchMapping?.startDate || pending.date
+        );
 
         if (scorecard.matchCompleted) {
           addLog('info', `Match ${pending.firestoreMatchId} completed! Winner: ${scorecard.winner}`);
 
           results.push({
+            firestoreMatchId: pending.firestoreMatchId,
+            cricbuzzMatchId,
+            result: scorecard,
+            fetchedAt: new Date().toISOString(),
+          });
+
+          // Also add to readyResults for auto-apply
+          schedulerState.readyResults.push({
             firestoreMatchId: pending.firestoreMatchId,
             cricbuzzMatchId,
             result: scorecard,
@@ -199,17 +237,23 @@ export function getSchedulerStatus() {
 /**
  * Register matches to watch for completion.
  * Called by the client when it knows which matches are live/upcoming.
- * @param {Array} matches - Array of {firestoreMatchId, team1, team2, date, status}
+ * @param {Array} matches - Array of {firestoreMatchId, team1, team2, date, status, hasResults}
  */
 export function registerPendingMatches(matches) {
-  // Only register live or recently started matches
   const now = new Date();
   const filtered = matches.filter(m => {
-    if (m.status === 'completed') return false;
-    // Include matches that started within the last 8 hours
     const matchDate = new Date(m.date);
     const hoursSinceStart = (now - matchDate) / (1000 * 60 * 60);
-    return hoursSinceStart >= -1 && hoursSinceStart <= 8; // From 1hr before start to 8hrs after
+    
+    // Include matches that need results processing:
+    // 1. Match has started (past start time)
+    // 2. Either: match is not marked completed, OR match doesn't have results yet
+    const hasStarted = hoursSinceStart >= -0.5; // Started or about to start
+    const needsResults = m.status !== 'completed' || m.hasResults === false;
+    
+    // Include any match that has started and needs results
+    // Up to 30 days old to catch any missed matches
+    return hasStarted && needsResults && hoursSinceStart <= 24 * 30;
   });
 
   schedulerState.pendingMatches = filtered;
@@ -253,4 +297,24 @@ export function clearProcessedMatches() {
  */
 export function getSchedulerLogs() {
   return schedulerState.logs;
+}
+
+/**
+ * Get results that are ready to be applied to Firestore
+ */
+export function getReadyResults() {
+  return schedulerState.readyResults;
+}
+
+/**
+ * Mark a result as applied (remove from ready queue)
+ */
+export function markResultApplied(firestoreMatchId) {
+  const idx = schedulerState.readyResults.findIndex(r => r.firestoreMatchId === firestoreMatchId);
+  if (idx !== -1) {
+    schedulerState.readyResults.splice(idx, 1);
+    addLog('info', `Marked result as applied for match ${firestoreMatchId}`);
+    return true;
+  }
+  return false;
 }

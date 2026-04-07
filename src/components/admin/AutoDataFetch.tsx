@@ -55,11 +55,19 @@ interface LogEntry {
 
 interface CricbuzzMatch {
   cricbuzzMatchId: string;
+  iplMatchId: string;
+  matchDesc: string;
+  matchOrder: string | number | null;
   team1: string;
   team2: string;
+  team1Short: string;
+  team2Short: string;
   team1Id: string;
   team2Id: string;
-  title: string;
+  startDate: string;
+  state: string;
+  status: string;
+  venue: string;
 }
 
 interface FetchedTeam {
@@ -236,11 +244,17 @@ export default function AutoDataFetch() {
       toast({ title: 'No Match Selected', description: 'Select or enter a match ID', variant: 'destructive' });
       return;
     }
-    // Find team names for the selected match to help ESPN matching
+    // Find team names, match order, and date for the selected match to help ESPN matching
     const selectedMatch = cricbuzzMatches.find(m => m.cricbuzzMatchId === matchId);
     const params = new URLSearchParams();
     if (selectedMatch?.team1) params.set('team1', selectedMatch.team1);
     if (selectedMatch?.team2) params.set('team2', selectedMatch.team2);
+    // Extract match number from matchOrder (e.g., "Match 12" -> 12)
+    if (selectedMatch?.matchOrder) {
+      const orderMatch = String(selectedMatch.matchOrder).match(/(\d+)/);
+      if (orderMatch) params.set('matchOrder', orderMatch[1]);
+    }
+    if (selectedMatch?.startDate) params.set('matchDate', selectedMatch.startDate);
     const qs = params.toString() ? `?${params.toString()}` : '';
     setFetchingScorecard(true);
     try {
@@ -354,22 +368,37 @@ export default function AutoDataFetch() {
       const intervalMs = parseInt(schedulerInterval) * 60 * 1000;
       await apiPost('/scheduler/start', { intervalMs });
 
-      // Register current live/upcoming matches
-      const liveMatches = firestoreMatches
-        .filter(m => m.status === 'live' || m.status === 'upcoming')
+      // Register matches that might need results processing:
+      // - Live or upcoming matches
+      // - Completed matches that don't have results populated yet
+      const matchesToRegister = firestoreMatches
+        .filter(m => {
+          // Include live/upcoming matches
+          if (m.status === 'live' || m.status === 'upcoming') return true;
+          // Include completed matches without a winner
+          if (m.status === 'completed') {
+            if (!m.result) return true;
+            if (!m.result.winner || m.result.winner === '' || m.result.winner === null) return true;
+          }
+          return false;
+        })
         .map(m => ({
           firestoreMatchId: m.id,
           team1: m.team1 || m.team1Id,
           team2: m.team2 || m.team2Id,
           date: m.date,
           status: m.status,
+          hasResults: !!(m.result?.winner && m.result.winner !== ''),
         }));
-      if (liveMatches.length > 0) {
-        await apiPost('/scheduler/register-matches', { matches: liveMatches });
+      
+      if (matchesToRegister.length > 0) {
+        await apiPost('/scheduler/register-matches', { matches: matchesToRegister });
+        // Trigger immediate check
+        await apiPost('/scheduler/trigger');
       }
 
       await fetchSchedulerStatus();
-      toast({ title: 'Scheduler Started', description: `Checking every ${schedulerInterval} minutes` });
+      toast({ title: 'Scheduler Started', description: `Checking every ${schedulerInterval} minutes. Registered ${matchesToRegister.length} matches and triggered check.` });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -409,6 +438,161 @@ export default function AutoDataFetch() {
       setLoadingScheduler(false);
     }
   }
+
+  // === Auto-Apply Ready Results ===
+  async function applyReadyResult(readyResult: any) {
+    const result = readyResult.result;
+    const matchId = readyResult.firestoreMatchId;
+
+    if (!result.matchCompleted) return false;
+
+    try {
+      // Build the predictionResults object for evaluation
+      const predictionResults: Record<string, string> = {};
+      if (result.winnerTeamId) predictionResults['winner'] = result.winnerTeamId;
+      if (result.topBatsman) predictionResults['topBatsman'] = result.topBatsman;
+      if (result.topBowler) predictionResults['topBowler'] = result.topBowler;
+      if (result.moreSixesTeamId) predictionResults['moreSixes'] = result.moreSixesTeamId;
+      if (result.totalSixes) predictionResults['totalSixes'] = result.totalSixes.toString();
+
+      // Determine if total exceeds 350
+      if (result.team1Score && result.team2Score) {
+        const team1Runs = parseInt(result.team1Score.split('/')[0]) || 0;
+        const team2Runs = parseInt(result.team2Score.split('/')[0]) || 0;
+        predictionResults['highestTotal'] = (team1Runs + team2Runs > 350) ? 'yes' : 'no';
+      }
+
+      // 1. Update match status to completed
+      const matchRef = doc(db, COLLECTIONS.MATCHES, matchId);
+      await updateDoc(matchRef, {
+        status: 'completed',
+        result: {
+          winner: result.winnerTeamId || result.winner,
+          team1Score: result.team1Score || '',
+          team2Score: result.team2Score || '',
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Save match result for evaluation
+      const resultRef = doc(collection(db, COLLECTIONS.MATCH_RESULTS));
+      await setDoc(resultRef, {
+        id: resultRef.id,
+        matchId,
+        winner: result.winnerTeamId || result.winner,
+        team1Score: result.team1Score || '',
+        team2Score: result.team2Score || '',
+        topBatsmanId: result.topBatsman || '',
+        topBowlerId: result.topBowler || '',
+        moreSixes: result.moreSixesTeamId || '',
+        totalSixes: result.totalSixes || 0,
+        predictionResults,
+        isEvaluated: false,
+        source: 'auto-scheduler',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 3. Evaluate predictions
+      await evaluateMatchPredictions(matchId);
+
+      // 4. Mark as applied on server
+      await apiPost('/scheduler/mark-applied', { firestoreMatchId: matchId });
+
+      return true;
+    } catch (err) {
+      console.error(`Failed to apply result for match ${matchId}:`, err);
+      return false;
+    }
+  }
+
+  // Poll for ready results and auto-apply them
+  useEffect(() => {
+    let pollInterval: ReturnType<typeof setInterval>;
+
+    async function pollAndApply() {
+      try {
+        const data = await apiGet('/scheduler/ready-results');
+        if (data.results && data.results.length > 0) {
+          console.log(`[AutoDataFetch] Found ${data.results.length} ready results to apply`);
+          for (const readyResult of data.results) {
+            const success = await applyReadyResult(readyResult);
+            if (success) {
+              toast({
+                title: 'Auto-Applied Result',
+                description: `Match ${readyResult.firestoreMatchId} result applied and predictions evaluated`,
+              });
+              // Reload matches to reflect changes
+              const matches = await getMatches();
+              setFirestoreMatches(matches);
+            }
+          }
+        }
+      } catch (err) {
+        // Silent fail for polling
+      }
+    }
+
+    // Poll every 30 seconds
+    pollInterval = setInterval(pollAndApply, 30000);
+    // Also run immediately
+    pollAndApply();
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
+  // Auto-start scheduler and register matches on mount
+  useEffect(() => {
+    async function autoStart() {
+      try {
+        const status = await apiGet('/scheduler/status');
+        
+        // Start scheduler if not running
+        if (!status.enabled) {
+          await apiPost('/scheduler/start', { intervalMs: 5 * 60 * 1000 });
+        }
+        
+        // Always register matches that need results processing
+        const matches = await getMatches();
+        const matchesToRegister = matches
+          .filter((m: any) => {
+            // Include live or upcoming matches
+            if (m.status === 'live' || m.status === 'upcoming') return true;
+            // Include completed matches without a winner set
+            if (m.status === 'completed') {
+              // No result object at all
+              if (!m.result) return true;
+              // Result object exists but no winner (empty string, null, or undefined)
+              if (!m.result.winner || m.result.winner === '' || m.result.winner === null) return true;
+            }
+            return false;
+          })
+          .map((m: any) => ({
+            firestoreMatchId: m.id,
+            team1: m.team1 || m.team1Id,
+            team2: m.team2 || m.team2Id,
+            date: m.date,
+            status: m.status,
+            hasResults: !!(m.result?.winner && m.result.winner !== ''),
+          }));
+
+        if (matchesToRegister.length > 0) {
+          await apiPost('/scheduler/register-matches', { matches: matchesToRegister });
+          console.log(`[AutoDataFetch] Auto-registered ${matchesToRegister.length} matches`);
+          
+          // Trigger immediate check for completed matches
+          console.log('[AutoDataFetch] Triggering immediate check...');
+          await apiPost('/scheduler/trigger');
+        }
+
+        await fetchSchedulerStatus();
+      } catch (err) {
+        console.error('[AutoDataFetch] Failed to auto-start scheduler:', err);
+      }
+    }
+
+    autoStart();
+  }, []);
 
   // === Render ===
   return (
@@ -545,7 +729,9 @@ export default function AutoDataFetch() {
                         <SelectContent>
                           {cricbuzzMatches.map((m) => (
                             <SelectItem key={m.cricbuzzMatchId} value={m.cricbuzzMatchId}>
-                              {m.title} (#{m.cricbuzzMatchId})
+                              {m.matchDesc || `${m.team1Short || m.team1} vs ${m.team2Short || m.team2}`}
+                              {m.startDate && ` - ${new Date(m.startDate).toLocaleDateString()}`}
+                              {m.state && ` (${m.state})`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -627,7 +813,8 @@ export default function AutoDataFetch() {
                             .filter(m => m.status !== 'completed')
                             .map((m) => (
                               <SelectItem key={m.id} value={m.id}>
-                                {m.team1 || m.team1Id} vs {m.team2 || m.team2Id} — {m.id}
+                                {m.team1 || m.team1Id} vs {m.team2 || m.team2Id}
+                                {m.date && ` - ${new Date(m.date).toLocaleDateString()}`}
                               </SelectItem>
                             ))}
                         </SelectContent>

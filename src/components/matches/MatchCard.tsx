@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { Match } from "@/utils/firestore-collections";
-import { getTeamLogoUrl, getTeamAbbreviation } from "@/utils/team-utils";
+import { getTeamLogoUrl, getTeamAbbreviation, getTeamDisplayName } from '@/utils/team-utils';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -108,19 +108,24 @@ const MatchCard = ({ match }: MatchCardProps) => {
   const renderMatchResult = () => {
     if (match.status === "completed") {
       if (match.result) {
-        const isTeam1Winner = match.result.winner === match.team1;
-        const isTeam2Winner = match.result.winner === match.team2;
+        const hasWinner = match.result.winner && match.result.winner !== '';
+        const isNoResult = !hasWinner || match.result.winner === 'no result';
+        const isTeam1Winner = hasWinner && (match.result.winner === match.team1 || match.result.winner === match.team1Id);
+        const isTeam2Winner = hasWinner && (match.result.winner === match.team2 || match.result.winner === match.team2Id);
+        const winnerName = hasWinner ? getTeamDisplayName(match.result.winner) : null;
         
         return (
           <div className="relative mt-2">
-            {/* Winner Trophy Animation */}
-            <div className="absolute top-0 left-0 right-0 flex justify-center">
-              <div className={`transform -translate-y-1/2 ${isTeam1Winner ? 'left-16' : isTeam2Winner ? 'right-16' : ''}`}>
-                <div className="animate-bounce">
-                  <Trophy className="h-6 w-6 text-yellow-500 filter drop-shadow" />
+            {/* Winner Trophy Animation - only show if there's a winner */}
+            {hasWinner && !isNoResult && (
+              <div className="absolute top-0 left-0 right-0 flex justify-center">
+                <div className={`transform -translate-y-1/2 ${isTeam1Winner ? 'left-16' : isTeam2Winner ? 'right-16' : ''}`}>
+                  <div className="animate-bounce">
+                    <Trophy className="h-6 w-6 text-yellow-500 filter drop-shadow" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
             {/* Score Display */}
             <div className="flex justify-center items-center gap-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-3">
@@ -133,11 +138,17 @@ const MatchCard = ({ match }: MatchCardProps) => {
               </div>
             </div>
             
-            {/* Winner Text */}
+            {/* Winner/No Result Text */}
             <div className="text-center mt-2">
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200">
-                {match.result.winner} won
-              </span>
+              {isNoResult ? (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                  No Result
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border border-yellow-200">
+                  {winnerName} won
+                </span>
+              )}
             </div>
           </div>
         );
